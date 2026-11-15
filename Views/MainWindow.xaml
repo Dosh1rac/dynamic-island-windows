@@ -15,6 +15,8 @@
         ShowInTaskbar="False"
         ResizeMode="NoResize"
         WindowStartupLocation="Manual"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True"
         Loaded="Window_Loaded"
         Closing="Window_Closing">
 
@@ -115,7 +117,7 @@
     <!-- Корневой контейнер -->
     <Grid HorizontalAlignment="Center" VerticalAlignment="Top">
 
-        <!-- Основная жидкая капсула острова с физикой Squash & Stretch -->
+        <!-- Основная жидкая капсула острова: ЧИСТЫЙ МОНОЛИТ БЕЗ ТЕНЕЙ И БЕЗ РАМОК -->
         <Border x:Name="IslandCapsule"
                 Width="{Binding IslandWidth}"
                 Height="{Binding IslandHeight}"
@@ -137,16 +139,7 @@
                 </TransformGroup>
             </Border.RenderTransform>
 
-            <Border.Effect>
-                <DropShadowEffect Color="#000000" BlurRadius="26" ShadowDepth="5" Opacity="0.55" Direction="270"/>
-            </Border.Effect>
-
             <Grid>
-                <!-- Верхний мягкий блик формы -->
-                <Border Height="16" VerticalAlignment="Top"
-                        CornerRadius="{Binding CapsuleCornerRadius, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource CornerRadiusConverter}}"
-                        Background="{StaticResource LiquidGlossBrush}" IsHitTestVisible="False"/>
-
                 <!-- ================= 0. СВЕРНУТАЯ МИНИ-ПОЛОСКА ================= -->
                 <Border x:Name="MinimizedBarContent" Width="36" Height="3" Background="#77FFFFFF" CornerRadius="1.5"
                         HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
