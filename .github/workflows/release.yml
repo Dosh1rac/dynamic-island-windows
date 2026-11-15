@@ -1,0 +1,63 @@
+name: Publish Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish Windows x64 Single File
+        run: |
+          dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
+
+      - name: Package ZIP Archive
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "publish\*" -DestinationPath "DynamicIsland_v1.0.zip" -Force
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Dynamic Island for Windows ${{ github.ref_name }}"
+          body: |
+            ### 🏝️ Dynamic Island for Windows - ${{ github.ref_name }}
+
+            Стильный, интерактивный Dynamic Island для рабочего стола Windows (.NET 8 WPF).
+
+            #### 🚀 Возможности:
+            - **OLED Black & Физика:** Глубокий чёрный цвет без полупрозрачных артефактов и плавная «жидкая» анимация растяжения (Squash & Stretch).
+            - **Умное медиа и визуализатор:** Интеграция с Windows SMTC (Яндекс Музыка, Spotify, VK, Браузер) + живой WASAPI FFT эквалайзер.
+            - **Мониторинг ПК:** Нагрузка и температура CPU/GPU в реальном времени, автодетекция полноэкранных игр.
+            - **Погода с автоопределением по IP и ручным выбором:** Точный прогноз через Open-Meteo, поддержка VPN и удобный поиск любого города.
+            - **Интерактивный HUD:** Всплывающие уведомления громкости, CapsLock, NumLock, подключение флешек и заряд батареи.
+            - **Фокус-таймер (Помодоро):** Быстрый запуск таймера с анимацией прогресса.
+            - **Умный буфер обмена:** История последних 10 скопированных элементов.
+            - **Карман файлов (DropZone):** Drag & Drop файлов прямо на островок.
+            - **Калькулятор Spotlight:** Быстрый подсчет выражений прямо в островке.
+            - **Док приложений:** Быстрый запуск Telegram, Discord, VS Code, Калькулятора, Параметров и других утилит.
+            - **Сворачивание в полоску:** Свайп или колесико мыши вверх сворачивает остров в тонкую мини-полоску.
+            - **Сквозной клик:** Горячая клавиша `Ctrl + Shift + I` для полного прокликивания окон под островом.
+
+            #### 📦 Установка:
+            1. Скачайте архив **`DynamicIsland_v1.0.zip`** ниже в Assets.
+            2. Распакуйте в любую удобную папку.
+            3. Запустите `DynamicIsland.exe` (установка .NET не требуется, всё вшито внутри).
+          files: DynamicIsland_v1.0.zip
+          draft: false
+          prerelease: false
