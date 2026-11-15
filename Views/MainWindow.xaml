@@ -7,7 +7,7 @@
         xmlns:models="clr-namespace:DynamicIsland.Models"
         mc:Ignorable="d"
         Title="Dynamic Island"
-        Width="600" Height="340"
+        Width="580" Height="290"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -114,37 +114,6 @@
     <!-- Корневой контейнер -->
     <Grid HorizontalAlignment="Center" VerticalAlignment="Top">
 
-        <!-- ================= ИНТЕРАКТИВНЫЙ ПИТОМЕЦ: РЫЖИЙ МЕЙН-КУН ================= -->
-        <Grid x:Name="CatPetContainer"
-              HorizontalAlignment="Center" VerticalAlignment="Top"
-              Margin="0,0,0,0"
-              Panel.ZIndex="10"
-              Cursor="Hand"
-              MouseLeftButtonDown="CatPet_MouseLeftButtonDown"
-              Visibility="{Binding IsPetEnabled, Converter={StaticResource BoolToVisConverter}}">
-
-            <Grid.RenderTransform>
-                <TransformGroup>
-                    <RotateTransform Angle="{Binding CatHeadAngle}" CenterX="24" CenterY="48"/>
-                    <ScaleTransform x:Name="CatScale" ScaleX="1.0" ScaleY="{Binding CatBlinkScaleY}" CenterX="24" CenterY="48"/>
-                    <TranslateTransform x:Name="CatBounce" Y="-28"/>
-                </TransformGroup>
-            </Grid.RenderTransform>
-
-            <!-- Фото-спрайт пушистого котенка мейн-куна с большими ушками-кисточками -->
-            <Image Source="/Assets/cat_mainecoon.png" Width="48" Height="56"
-                   Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
-
-            <!-- Всплывающее сердечко при поглаживании/клике -->
-            <TextBlock x:Name="HeartText" Text="❤️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Top"
-                       Margin="0,-16,0,0" Opacity="0.0">
-                <TextBlock.RenderTransform>
-                    <TranslateTransform x:Name="HeartTranslate" Y="0"/>
-                </TextBlock.RenderTransform>
-            </TextBlock>
-        </Grid>
-
-
         <!-- ================= ОСНОВНАЯ КАПСУЛА ОСТРОВА ================= -->
         <Border x:Name="IslandCapsule"
                 Width="{Binding IslandWidth}"
@@ -154,7 +123,6 @@
                 BorderThickness="0"
                 ClipToBounds="True"
                 Cursor="Hand"
-                Margin="0,18,0,0"
                 RenderTransformOrigin="0.5, 0.0"
                 MouseLeftButtonDown="IslandCapsule_MouseLeftButtonDown"
                 MouseMove="IslandCapsule_MouseMove"
@@ -737,7 +705,7 @@
                     </Grid>
 
 
-                    <!-- Нижний статус-бар: переключатели котика, звука, автозапуска и погода -->
+                    <!-- Нижний статус-бар: звуки, автозапуск и погода -->
                     <Grid Grid.Row="3" Margin="0,10,0,0">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
                             <!-- Погода -->
@@ -745,10 +713,6 @@
                                 <Path Data="{Binding WeatherIcon}" Fill="#FFD60A" Stretch="Uniform" Width="11" Height="11" Margin="0,0,4,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="{Binding WeatherTemp}" Foreground="#8E8E93" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center"/>
                             </StackPanel>
-
-                            <!-- Кот On/Off -->
-                            <Button Content="{Binding IsPetEnabled, StringFormat='{}Кот: {0}'}"
-                                    Style="{StaticResource ModeChipButton}" Padding="6,2" FontSize="9" Margin="0,0,6,0" Command="{Binding TogglePetCommand}"/>
 
                             <!-- Звук On/Off -->
                             <Button Content="{Binding IsSoundEnabled, StringFormat='{}Звук: {0}'}"

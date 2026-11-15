@@ -17,11 +17,4 @@
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.4" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Resource Include="Assets\cat_mainecoon.png" />
-    <None Update="Assets\cat_mainecoon.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
 </Project>

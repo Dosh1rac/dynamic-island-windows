@@ -9,7 +9,6 @@ namespace DynamicIsland.Services
         bool IsSoundEnabled { get; set; }
         void PlayPop();
         void PlaySnap();
-        void PlayPurr();
         void PlayDrop();
     }
 
@@ -19,7 +18,6 @@ namespace DynamicIsland.Services
 
         private byte[]? _popWav;
         private byte[]? _snapWav;
-        private byte[]? _purrWav;
         private byte[]? _dropWav;
 
         public SoundEffectService()
@@ -28,7 +26,6 @@ namespace DynamicIsland.Services
             _popWav = GenerateToneWav(frequencyStart: 650, frequencyEnd: 240, durationMs: 45, volume: 0.25f);
             _snapWav = GenerateToneWav(frequencyStart: 1100, frequencyEnd: 450, durationMs: 25, volume: 0.18f);
             _dropWav = GenerateToneWav(frequencyStart: 350, frequencyEnd: 700, durationMs: 50, volume: 0.22f);
-            _purrWav = GeneratePurrWav(durationMs: 350, volume: 0.30f);
         }
 
         public void PlayPop()
@@ -41,12 +38,6 @@ namespace DynamicIsland.Services
         {
             if (!IsSoundEnabled || _snapWav == null) return;
             PlayBytes(_snapWav);
-        }
-
-        public void PlayPurr()
-        {
-            if (!IsSoundEnabled || _purrWav == null) return;
-            PlayBytes(_purrWav);
         }
 
         public void PlayDrop()
@@ -84,30 +75,6 @@ namespace DynamicIsland.Services
                 // Экспоненциальное затухание (envelope decay)
                 double env = Math.Exp(-4.5 * t);
                 pcm[i] = (short)(Math.Sin(phase) * env * volume * 32767);
-            }
-
-            return PackPcmToWav(pcm, sampleRate);
-        }
-
-        private static byte[] GeneratePurrWav(int durationMs, float volume)
-        {
-            int sampleRate = 44100;
-            int samples = (sampleRate * durationMs) / 1000;
-            short[] pcm = new short[samples];
-
-            double phase1 = 0.0;
-            double phase2 = 0.0;
-            for (int i = 0; i < samples; i++)
-            {
-                double t = (double)i / sampleRate;
-                // Низкочастотная вибрация (мурлыканье ~28 Гц модуляция частоты 85 Гц)
-                double mod = 0.5 + 0.5 * Math.Sin(2.0 * Math.PI * 26.0 * t);
-                phase1 += 2.0 * Math.PI * 80.0 / sampleRate;
-                phase2 += 2.0 * Math.PI * 160.0 / sampleRate;
-
-                double sample = (Math.Sin(phase1) * 0.7 + Math.Sin(phase2) * 0.3) * mod;
-                double env = Math.Sin(Math.PI * i / samples); // мягкое начало и конец
-                pcm[i] = (short)(sample * env * volume * 32767);
             }
 
             return PackPcmToWav(pcm, sampleRate);

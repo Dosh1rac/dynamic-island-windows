@@ -26,7 +26,6 @@ namespace DynamicIsland.ViewModels
         private readonly IWeatherService _weatherService;
 
         private readonly DispatcherTimer _hudDismissTimer;
-        private readonly DispatcherTimer _catIdleTimer;
 
         [ObservableProperty]
         private IslandState _currentState = IslandState.Idle;
@@ -52,19 +51,6 @@ namespace DynamicIsland.ViewModels
 
         [ObservableProperty]
         private double _eyeScaleY = 1.0;
-
-        // ================= ПИТОМЕЦ МЕЙН-КУН =================
-        [ObservableProperty]
-        private bool _isPetEnabled = true;
-
-        [ObservableProperty]
-        private double _catHeadAngle;
-
-        [ObservableProperty]
-        private bool _isCatPurring;
-
-        [ObservableProperty]
-        private double _catBlinkScaleY = 1.0;
 
         // Медиа
         [ObservableProperty]
@@ -207,10 +193,6 @@ namespace DynamicIsland.ViewModels
             _hudDismissTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1800) };
             _hudDismissTimer.Tick += (s, e) => DismissNotification();
 
-            _catIdleTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
-            _catIdleTimer.Tick += OnCatIdleTick;
-            _catIdleTimer.Start();
-
             // Подписки
             _cursorTrackerService.CursorMoved += OnCursorMoved;
             _mediaService.MediaChanged += OnMediaChanged;
@@ -241,43 +223,6 @@ namespace DynamicIsland.ViewModels
             RightPupilX = e.RightPupilX;
             RightPupilY = e.RightPupilY;
             EyeScaleY = e.EyeScaleY;
-
-            // Котенок поворачивает голову вслед за курсором (-10° .. +10°)
-            CatHeadAngle = Math.Clamp(e.LeftPupilX * 2.2, -10.0, 10.0);
-        }
-
-        private void OnCatIdleTick(object? sender, EventArgs e)
-        {
-            // Случайное подмигивание котенка
-            CatBlinkScaleY = 0.2;
-            var restoreTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(160) };
-            restoreTimer.Tick += (s, args) =>
-            {
-                restoreTimer.Stop();
-                CatBlinkScaleY = 1.0;
-            };
-            restoreTimer.Start();
-        }
-
-        [RelayCommand]
-        public void PetTheCat()
-        {
-            _soundEffectService.PlayPurr();
-            IsCatPurring = true;
-
-            var purrReset = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1200) };
-            purrReset.Tick += (s, args) =>
-            {
-                purrReset.Stop();
-                IsCatPurring = false;
-            };
-            purrReset.Start();
-        }
-
-        [RelayCommand]
-        public void TogglePet()
-        {
-            IsPetEnabled = !IsPetEnabled;
         }
 
         private void OnMediaChanged(object? sender, TrackInfo track)
@@ -813,7 +758,6 @@ namespace DynamicIsland.ViewModels
             _timerService.Dispose();
             _weatherService.Dispose();
             _hudDismissTimer.Stop();
-            _catIdleTimer.Stop();
         }
     }
 }

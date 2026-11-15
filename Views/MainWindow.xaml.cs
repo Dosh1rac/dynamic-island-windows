@@ -68,7 +68,7 @@ namespace DynamicIsland.Views
             App.Log("MainWindow Window_Loaded enter.");
             double screenWidth = SystemParameters.PrimaryScreenWidth;
             Left = (screenWidth - Width) / 2;
-            Top = 2; // Чуть ближе к верхнему краю для идеальной посадки котенка
+            Top = 6;
             App.Log($"MainWindow positioned at Left={Left}, Top={Top}, Width={Width}, Height={Height}.");
 
             _hwnd = new WindowInteropHelper(this).Handle;
@@ -295,30 +295,6 @@ namespace DynamicIsland.Views
                     elem.Opacity = 0.0;
                 }
             }
-        }
-
-        // ================= ИНТЕРАКТИВНЫЙ КОТИК МЕЙН-КУН =================
-
-        private void CatPet_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            _viewModel.PetTheCatCommand.Execute(null);
-
-            // Анимация подпрыгивания котика
-            var bounceAnim = new DoubleAnimationUsingKeyFrames();
-            bounceAnim.KeyFrames.Add(new SplineDoubleKeyFrame(-28, KeyTime.FromTimeSpan(TimeSpan.Zero)));
-            bounceAnim.KeyFrames.Add(new SplineDoubleKeyFrame(-38, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(120))));
-            bounceAnim.KeyFrames.Add(new SplineDoubleKeyFrame(-26, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(240))));
-            bounceAnim.KeyFrames.Add(new SplineDoubleKeyFrame(-28, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(340))));
-            CatBounce.BeginAnimation(TranslateTransform.YProperty, bounceAnim);
-
-            // Всплывающее сердечко ❤️
-            HeartText.Opacity = 1.0;
-            var heartMove = new DoubleAnimation(0.0, -22.0, TimeSpan.FromMilliseconds(700)) { EasingFunction = _smoothEase };
-            var heartFade = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(700));
-            HeartTranslate.BeginAnimation(TranslateTransform.YProperty, heartMove);
-            HeartText.BeginAnimation(OpacityProperty, heartFade);
-
-            e.Handled = true;
         }
 
         // ================= DROP ZONE (DRAG & DROP) =================

@@ -82,7 +82,7 @@ namespace DynamicIsland
 
                 MainWindow = mainWindow;
                 mainWindow.Show();
-                Log("MainWindow.Show() with Maine Coon pet, DropZone and SoundFX successfully started.");
+                Log("MainWindow.Show() started successfully.");
             }
             catch (Exception ex)
             {
