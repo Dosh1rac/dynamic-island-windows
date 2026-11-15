@@ -7,7 +7,7 @@
         xmlns:models="clr-namespace:DynamicIsland.Models"
         mc:Ignorable="d"
         Title="Dynamic Island"
-        Width="560" Height="280"
+        Width="580" Height="300"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -27,7 +27,14 @@
         <helpers:CornerRadiusConverter x:Key="CornerRadiusConverter"/>
         <BooleanToVisibilityConverter x:Key="BoolToVisConverter"/>
 
-        <!-- Стиль для круглых кнопок управления -->
+        <!-- Деликатный верхний блик жидкой формы (Liquid Specular) -->
+        <LinearGradientBrush x:Key="LiquidGlossBrush" StartPoint="0.5,0" EndPoint="0.5,1">
+            <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
+            <GradientStop Color="#08FFFFFF" Offset="0.4"/>
+            <GradientStop Color="#00000000" Offset="1.0"/>
+        </LinearGradientBrush>
+
+        <!-- Круглые кнопки управления -->
         <Style x:Key="IslandCircleButton" TargetType="Button">
             <Setter Property="Background" Value="#22FFFFFF"/>
             <Setter Property="Foreground" Value="#FFFFFF"/>
@@ -53,7 +60,7 @@
             </Setter>
         </Style>
 
-        <!-- Стиль кнопок переключения вкладок и режимов -->
+        <!-- Стиль кнопок переключения вкладок -->
         <Style x:Key="ModeChipButton" TargetType="Button">
             <Setter Property="Foreground" Value="#CCFFFFFF"/>
             <Setter Property="FontSize" Value="10"/>
@@ -108,7 +115,7 @@
     <!-- Корневой контейнер -->
     <Grid HorizontalAlignment="Center" VerticalAlignment="Top">
 
-        <!-- Основная монолитная капсула острова -->
+        <!-- Основная жидкая капсула острова с физикой Squash & Stretch -->
         <Border x:Name="IslandCapsule"
                 Width="{Binding IslandWidth}"
                 Height="{Binding IslandHeight}"
@@ -117,23 +124,40 @@
                 BorderThickness="0"
                 ClipToBounds="True"
                 Cursor="Hand"
+                RenderTransformOrigin="0.5, 0.0"
                 MouseLeftButtonDown="IslandCapsule_MouseLeftButtonDown"
                 MouseMove="IslandCapsule_MouseMove"
                 MouseLeftButtonUp="IslandCapsule_MouseLeftButtonUp"
                 MouseWheel="IslandCapsule_MouseWheel">
 
+            <Border.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform x:Name="CapsuleScale" ScaleX="1.0" ScaleY="1.0"/>
+                    <TranslateTransform x:Name="CapsuleTranslate" Y="0.0"/>
+                </TransformGroup>
+            </Border.RenderTransform>
+
             <Border.Effect>
-                <DropShadowEffect Color="#000000" BlurRadius="24" ShadowDepth="4" Opacity="0.55" Direction="270"/>
+                <DropShadowEffect Color="#000000" BlurRadius="26" ShadowDepth="5" Opacity="0.55" Direction="270"/>
             </Border.Effect>
 
             <Grid>
+                <!-- Верхний мягкий блик формы -->
+                <Border Height="16" VerticalAlignment="Top"
+                        CornerRadius="{Binding CapsuleCornerRadius, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource CornerRadiusConverter}}"
+                        Background="{StaticResource LiquidGlossBrush}" IsHitTestVisible="False"/>
+
                 <!-- ================= 0. СВЕРНУТАЯ МИНИ-ПОЛОСКА ================= -->
                 <Border x:Name="MinimizedBarContent" Width="36" Height="3" Background="#77FFFFFF" CornerRadius="1.5"
                         HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
 
 
                 <!-- ================= HUD. СИСТЕМНЫЕ ВСПЛЫВАЮЩИЕ УВЕДОМЛЕНИЯ ================= -->
-                <Grid x:Name="HudContent" Margin="12,0" VerticalAlignment="Center" Visibility="Collapsed">
+                <Grid x:Name="HudContent" Margin="12,0" VerticalAlignment="Center" Visibility="Collapsed"
+                      RenderTransformOrigin="0.5,0.5">
+                    <Grid.RenderTransform>
+                        <ScaleTransform x:Name="HudScale" ScaleX="1.0" ScaleY="1.0"/>
+                    </Grid.RenderTransform>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
@@ -172,7 +196,11 @@
 
 
                 <!-- ================= 1. IDLE РЕЖИМ (ГЛАЗКИ + СТАТУС + ТАЙМЕР) ================= -->
-                <Grid x:Name="IdleContent" Margin="10,0" VerticalAlignment="Center" Visibility="Visible">
+                <Grid x:Name="IdleContent" Margin="10,0" VerticalAlignment="Center" Visibility="Visible"
+                      RenderTransformOrigin="0.5,0.5">
+                    <Grid.RenderTransform>
+                        <ScaleTransform x:Name="IdleScale" ScaleX="1.0" ScaleY="1.0"/>
+                    </Grid.RenderTransform>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
@@ -228,7 +256,6 @@
 
                     <!-- Правая часть: либо активный таймер, либо индикатор сенсора -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <!-- Мини-индикатор таймера если он запущен -->
                         <Border Background="#22FF9500" CornerRadius="8" Padding="5,2" Margin="6,0,2,0"
                                 Visibility="{Binding IsTimerActive, Converter={StaticResource BoolToVisConverter}}">
                             <StackPanel Orientation="Horizontal">
@@ -245,7 +272,11 @@
 
                 <!-- ================= 2. СРЕДНИЙ РЕЖИМ (MEDIA / GAMING) ================= -->
                 <!-- Медиа-вид (мини-обложка + живой эквалайзер) -->
-                <Grid x:Name="CompactMediaContent" Margin="10,0" VerticalAlignment="Center" Visibility="Collapsed">
+                <Grid x:Name="CompactMediaContent" Margin="10,0" VerticalAlignment="Center" Visibility="Collapsed"
+                      RenderTransformOrigin="0.5,0.5">
+                    <Grid.RenderTransform>
+                        <ScaleTransform x:Name="MediaScale" ScaleX="1.0" ScaleY="1.0"/>
+                    </Grid.RenderTransform>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
@@ -268,13 +299,11 @@
                     </StackPanel>
 
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <!-- Индикатор таймера если активен -->
                         <Border Background="#22FF9500" CornerRadius="8" Padding="5,2" Margin="0,0,6,0"
                                 Visibility="{Binding IsTimerActive, Converter={StaticResource BoolToVisConverter}}">
                             <TextBlock Text="{Binding TimerFormatted}" Foreground="#FF9500" FontSize="9" FontWeight="Bold"/>
                         </Border>
 
-                        <!-- Эквалайзер -->
                         <ItemsControl ItemsSource="{Binding EqualizerBands}" VerticalAlignment="Center">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -299,7 +328,11 @@
                 </Grid>
 
                 <!-- Гейминг-вид (CPU/GPU) -->
-                <Grid x:Name="CompactGamingContent" Margin="12,0" VerticalAlignment="Center" Visibility="Collapsed">
+                <Grid x:Name="CompactGamingContent" Margin="12,0" VerticalAlignment="Center" Visibility="Collapsed"
+                      RenderTransformOrigin="0.5,0.5">
+                    <Grid.RenderTransform>
+                        <ScaleTransform x:Name="GamingScale" ScaleX="1.0" ScaleY="1.0"/>
+                    </Grid.RenderTransform>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -325,7 +358,11 @@
 
 
                 <!-- ================= 3. РАСКРЫТЫЙ РЕЖИМ (EXPANDED WIDGETS) ================= -->
-                <Grid x:Name="ExpandedContent" Margin="16" Visibility="Collapsed">
+                <Grid x:Name="ExpandedContent" Margin="16" Visibility="Collapsed"
+                      RenderTransformOrigin="0.5,0.2">
+                    <Grid.RenderTransform>
+                        <ScaleTransform x:Name="ExpandedScale" ScaleX="1.0" ScaleY="1.0"/>
+                    </Grid.RenderTransform>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -482,22 +519,18 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <!-- Большой дисплей времени -->
                         <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center">
                             <TextBlock Text="{Binding TimerFormatted}" Foreground="#FFFFFF" FontSize="32" FontWeight="Bold" FontFamily="Consolas" HorizontalAlignment="Center"/>
                             <ProgressBar Value="{Binding TimerProgress}" Maximum="1.0" Height="4" Width="90" Background="#22FFFFFF" Foreground="#FF9500" BorderThickness="0" Margin="0,6,0,0"/>
                         </StackPanel>
 
-                        <!-- Панель кнопок пресетов и управления -->
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
-                            <!-- Пресеты -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                 <Button Style="{StaticResource ModeChipButton}" Content="5 мин" Margin="0,0,6,0" Command="{Binding StartTimerCommand}" CommandParameter="5"/>
                                 <Button Style="{StaticResource ModeChipButton}" Content="15 мин" Margin="0,0,6,0" Command="{Binding StartTimerCommand}" CommandParameter="15"/>
                                 <Button Style="{StaticResource ModeChipButton}" Content="25 мин (Помодоро)" Margin="0,0,6,0" Background="#33FF9500" Command="{Binding StartTimerCommand}" CommandParameter="25"/>
                             </StackPanel>
 
-                            <!-- Кнопки Старт / Пауза / Сброс / +5 -->
                             <StackPanel Orientation="Horizontal">
                                 <Button Style="{StaticResource ModeChipButton}" Content="Старт / Пауза" Background="#30D158" Foreground="#000000" Margin="0,0,6,0" Command="{Binding ToggleTimerCommand}"/>
                                 <Button Style="{StaticResource ModeChipButton}" Content="+5 мин" Background="#26FFFFFF" Margin="0,0,6,0" Command="{Binding AddTimerMinutesCommand}" CommandParameter="5"/>
@@ -567,32 +600,26 @@
                         </Grid.Style>
 
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <!-- Браузер -->
                             <Button Style="{StaticResource DockAppButton}" Margin="0,0,10,0" Command="{Binding LaunchAppCommand}" CommandParameter="browser" ToolTip="Браузер">
                                 <Path Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" Fill="#00E5FF" Stretch="Uniform" Width="20" Height="20"/>
                             </Button>
 
-                            <!-- Проводник -->
                             <Button Style="{StaticResource DockAppButton}" Margin="0,0,10,0" Command="{Binding LaunchAppCommand}" CommandParameter="explorer" ToolTip="Проводник">
                                 <Path Data="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" Fill="#FFD60A" Stretch="Uniform" Width="20" Height="20"/>
                             </Button>
 
-                            <!-- Блокнот -->
                             <Button Style="{StaticResource DockAppButton}" Margin="0,0,10,0" Command="{Binding LaunchAppCommand}" CommandParameter="notepad" ToolTip="Блокнот">
                                 <Path Data="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" Fill="#30D158" Stretch="Uniform" Width="20" Height="20"/>
                             </Button>
 
-                            <!-- Терминал -->
                             <Button Style="{StaticResource DockAppButton}" Margin="0,0,10,0" Command="{Binding LaunchAppCommand}" CommandParameter="terminal" ToolTip="Терминал">
                                 <Path Data="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8h16v10zm-2-1h-6v-2h6v2zM7.5 17l-1.41-1.41L8.67 13l-2.58-2.59L7.5 9l4 4-4 4z" Fill="#FFFFFF" Stretch="Uniform" Width="20" Height="20"/>
                             </Button>
 
-                            <!-- Диспетчер задач -->
                             <Button Style="{StaticResource DockAppButton}" Margin="0,0,10,0" Command="{Binding LaunchAppCommand}" CommandParameter="taskmgr" ToolTip="Диспетчер задач">
                                 <Path Data="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-3-4-2 2.5-1.5-1.5L8 11.5l3 4 4-6 4 5h-7z" Fill="#FF9F0A" Stretch="Uniform" Width="20" Height="20"/>
                             </Button>
 
-                            <!-- Настройки Windows -->
                             <Button Style="{StaticResource DockAppButton}" Command="{Binding LaunchAppCommand}" CommandParameter="settings" ToolTip="Настройки Windows">
                                 <Path Data="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" Fill="#BF5AF2" Stretch="Uniform" Width="20" Height="20"/>
                             </Button>
@@ -603,7 +630,6 @@
                     <!-- Нижний статус-бар -->
                     <Grid Grid.Row="2" Margin="0,10,0,0">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <!-- Тумблер автозапуска -->
                             <Button Content="{Binding IsAutoStartEnabled, StringFormat='{}Автозапуск: {0}'}"
                                     Padding="6,2" FontSize="9" Margin="0,0,10,0" Command="{Binding ToggleAutoStartCommand}">
                                 <Button.Style>
