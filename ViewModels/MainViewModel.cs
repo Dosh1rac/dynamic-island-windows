@@ -1038,6 +1038,11 @@ namespace DynamicIsland.ViewModels
         {
             switch (preset)
             {
+                case "Tooken":
+                case "Tooken Club":
+                    AiSettingsBaseUrl = "https://tooken.club/v1";
+                    AiSettingsModel = "gpt-6-luna";
+                    break;
                 case "OpenAI":
                     AiSettingsBaseUrl = "https://api.openai.com/v1";
                     AiSettingsModel = "gpt-4o-mini";
