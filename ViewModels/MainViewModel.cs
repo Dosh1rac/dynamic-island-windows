@@ -208,9 +208,6 @@ namespace DynamicIsland.ViewModels
         private bool _aiSettingsEnableControl = true;
 
         [ObservableProperty]
-        private bool _aiSettingsEnableTts = true;
-
-        [ObservableProperty]
         private string _aiStatusSummary = "OpenAI (gpt-4o-mini)";
 
         // Размеры капсулы
@@ -257,7 +254,6 @@ namespace DynamicIsland.ViewModels
             AiSettingsApiKey = cfg.ApiKey;
             AiSettingsModel = cfg.Model;
             AiSettingsEnableControl = cfg.EnableComputerControl;
-            AiSettingsEnableTts = cfg.EnableVoiceTts;
             AiStatusSummary = $"{cfg.Model}";
 
             ChatMessages.Add(new ChatMessageItem
@@ -944,11 +940,6 @@ namespace DynamicIsland.ViewModels
                     Content = result.ReplyText,
                     ActionBadge = string.IsNullOrEmpty(result.ExecutedAction) ? "" : $"⚡ {result.ExecutedAction}"
                 });
-
-                if (_aiAgentService.Config.EnableVoiceTts)
-                {
-                    await _voiceService.SpeakTextAsync(result.ReplyText);
-                }
             }
             else
             {
@@ -996,7 +987,6 @@ namespace DynamicIsland.ViewModels
                 Role = "assistant",
                 Content = "Чат очищен. Чем могу помочь?"
             });
-            _voiceService.StopSpeaking();
         }
 
         [RelayCommand]
@@ -1007,7 +997,6 @@ namespace DynamicIsland.ViewModels
             AiSettingsApiKey = cfg.ApiKey;
             AiSettingsModel = cfg.Model;
             AiSettingsEnableControl = cfg.EnableComputerControl;
-            AiSettingsEnableTts = cfg.EnableVoiceTts;
             IsAiSettingsOpen = true;
         }
 
@@ -1025,7 +1014,6 @@ namespace DynamicIsland.ViewModels
             cfg.ApiKey = AiSettingsApiKey?.Trim() ?? string.Empty;
             cfg.Model = string.IsNullOrWhiteSpace(AiSettingsModel) ? "gpt-4o-mini" : AiSettingsModel.Trim();
             cfg.EnableComputerControl = AiSettingsEnableControl;
-            cfg.EnableVoiceTts = AiSettingsEnableTts;
 
             _aiAgentService.SaveConfig(cfg);
             AiStatusSummary = $"{cfg.Model}";
@@ -1071,12 +1059,6 @@ namespace DynamicIsland.ViewModels
         {
             AgentUserInput = prompt;
             await SendAgentMessage();
-        }
-
-        [RelayCommand]
-        public void StopTtsSpeech()
-        {
-            _voiceService.StopSpeaking();
         }
 
         public void UpdateScreenPosition(double screenCenterX, double screenTopY)

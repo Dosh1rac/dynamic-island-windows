@@ -741,8 +741,6 @@
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Button Style="{StaticResource ModeChipButton}" Content="🔊 Стоп" Padding="7,3" FontSize="9.5" Margin="0,0,4,0"
-                                        Command="{Binding StopTtsSpeechCommand}" ToolTip="Остановить голос"/>
                                 <Button Style="{StaticResource ModeChipButton}" Content="⚙ Настройки" Padding="7,3" FontSize="9.5" Margin="0,0,4,0"
                                         Command="{Binding OpenAiSettingsCommand}" ToolTip="Настройки API ключа и модели"/>
                                 <Button Style="{StaticResource ModeChipButton}" Content="🗑" Padding="7,3" FontSize="9.5"
@@ -975,7 +973,7 @@
 
                         <!-- Заголовок и закрытие -->
                         <DockPanel Grid.Row="0" Margin="0,0,0,6">
-                            <TextBlock Text="⚙ Настройки AI Агента и Голоса" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <TextBlock Text="⚙ Настройки AI Агента" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
                             <Button Content="✕" Style="{StaticResource ModeChipButton}" HorizontalAlignment="Right" Padding="6,2" FontSize="9"
                                     Command="{Binding CloseAiSettingsCommand}"/>
                         </DockPanel>
@@ -1017,10 +1015,7 @@
                                      Padding="6,3" FontSize="10" Margin="0,0,0,6"/>
 
                             <CheckBox Content="Управление ПК (запуск программ, powershell, скриншоты)"
-                                      IsChecked="{Binding AiSettingsEnableControl}" Foreground="#FFFFFF" FontSize="9.5" Margin="0,0,0,4"/>
-
-                            <CheckBox Content="Озвучивать ответы голосом (TTS Irina/Zira)"
-                                      IsChecked="{Binding AiSettingsEnableTts}" Foreground="#FFFFFF" FontSize="9.5"/>
+                                      IsChecked="{Binding AiSettingsEnableControl}" Foreground="#FFFFFF" FontSize="9.5"/>
                         </StackPanel>
 
                         <!-- Кнопка сохранения -->

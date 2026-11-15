@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Speech.Synthesis;
 using System.Text.Json;
 using System.Threading.Tasks;
 using NAudio.Wave;
@@ -12,12 +11,8 @@ namespace DynamicIsland.Services
     public interface IVoiceService : IDisposable
     {
         bool IsRecording { get; }
-        bool IsSpeaking { get; }
-
         void StartRecording();
         Task<string> StopRecordingAndTranscribeAsync(string apiKey, string baseUrl);
-        Task SpeakTextAsync(string text);
-        void StopSpeaking();
     }
 
     public class VoiceService : IVoiceService
@@ -25,36 +20,8 @@ namespace DynamicIsland.Services
         private WaveInEvent? _waveIn;
         private MemoryStream? _audioStream;
         private WaveFileWriter? _waveWriter;
-        private SpeechSynthesizer? _synthesizer;
 
         public bool IsRecording { get; private set; }
-        public bool IsSpeaking { get; private set; }
-
-        public VoiceService()
-        {
-            try
-            {
-                _synthesizer = new SpeechSynthesizer();
-                // Поиск установленного русского голоса (например, Microsoft Irina Desktop)
-                foreach (var voice in _synthesizer.GetInstalledVoices())
-                {
-                    if (voice.Enabled && voice.VoiceInfo?.Culture?.TwoLetterISOLanguageName.Equals("ru", StringComparison.OrdinalIgnoreCase) == true)
-                    {
-                        if (!string.IsNullOrEmpty(voice.VoiceInfo?.Name))
-                        {
-                            _synthesizer.SelectVoice(voice.VoiceInfo.Name);
-                        }
-                        break;
-                    }
-                }
-
-                _synthesizer.SpeakCompleted += (s, e) => IsSpeaking = false;
-            }
-            catch (Exception ex)
-            {
-                App.Log($"VoiceService TTS init error: {ex.Message}");
-            }
-        }
 
         public void StartRecording()
         {
@@ -65,7 +32,7 @@ namespace DynamicIsland.Services
                 _audioStream = new MemoryStream();
                 _waveIn = new WaveInEvent
                 {
-                    WaveFormat = new WaveFormat(16000, 16, 1) // 16kHz Mono 16-bit PCM — идеальный формат для Whisper
+                    WaveFormat = new WaveFormat(16000, 16, 1) // 16kHz Mono 16-bit PCM — формат для Whisper
                 };
 
                 _waveWriter = new WaveFileWriter(_audioStream, _waveIn.WaveFormat);
@@ -128,7 +95,7 @@ namespace DynamicIsland.Services
         {
             if (string.IsNullOrWhiteSpace(apiKey))
             {
-                return "Для голосового распознавания укажите API ключ в настройках (шестеренка вверху AI).";
+                return "Для голосового ввода укажите API ключ в настройках (шестеренка вверху AI).";
             }
 
             try
@@ -173,55 +140,8 @@ namespace DynamicIsland.Services
             return string.Empty;
         }
 
-        public async Task SpeakTextAsync(string text)
-        {
-            if (_synthesizer == null || string.IsNullOrWhiteSpace(text)) return;
-
-            await Task.Run(() =>
-            {
-                try
-                {
-                    StopSpeaking();
-                    IsSpeaking = true;
-                    // Удаляем markdown символы и код перед озвучкой
-                    string clean = CleanTextForSpeech(text);
-                    _synthesizer.SpeakAsync(clean);
-                }
-                catch (Exception ex)
-                {
-                    App.Log($"SpeakTextAsync error: {ex.Message}");
-                    IsSpeaking = false;
-                }
-            });
-        }
-
-        public void StopSpeaking()
-        {
-            try
-            {
-                if (_synthesizer != null)
-                {
-                    _synthesizer.SpeakAsyncCancelAll();
-                    IsSpeaking = false;
-                }
-            }
-            catch { }
-        }
-
-        private static string CleanTextForSpeech(string input)
-        {
-            if (string.IsNullOrWhiteSpace(input)) return string.Empty;
-            string s = input;
-            // Убираем ссылки, звездочки markdown, решетки заголовков
-            s = s.Replace("**", "").Replace("*", "").Replace("`", "").Replace("#", "");
-            if (s.Length > 400) s = s.Substring(0, 400); // Озвучиваем только первые 400 символов, чтобы не утомлять
-            return s;
-        }
-
         public void Dispose()
         {
-            StopSpeaking();
-            _synthesizer?.Dispose();
             _waveIn?.Dispose();
             _waveWriter?.Dispose();
             _audioStream?.Dispose();

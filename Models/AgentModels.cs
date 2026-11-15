@@ -23,6 +23,5 @@ namespace DynamicIsland.Models
         public string Model { get; set; } = "gpt-4o-mini";
         public string SystemPrompt { get; set; } = "Ты умный персональный AI-ассистент в Dynamic Island для Windows. Ты умеешь отвечать на вопросы, помогать пользователю и при необходимости выполнять действия на компьютере через инструменты.";
         public bool EnableComputerControl { get; set; } = true;
-        public bool EnableVoiceTts { get; set; } = true;
     }
 }
