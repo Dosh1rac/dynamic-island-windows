@@ -37,6 +37,9 @@ namespace DynamicIsland.Helpers
         [DllImport("user32.dll")]
         public static extern short GetKeyState(int nVirtKey);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool LockWorkStation();
+
         [StructLayout(LayoutKind.Sequential)]
         public struct POINT
         {

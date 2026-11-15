@@ -24,6 +24,8 @@ namespace DynamicIsland.ViewModels
         private readonly ISoundEffectService _soundEffectService;
         private readonly IDropZoneService _dropZoneService;
         private readonly IWeatherService _weatherService;
+        private readonly IAiAgentService _aiAgentService;
+        private readonly IVoiceService _voiceService;
 
         private readonly DispatcherTimer _hudDismissTimer;
 
@@ -175,6 +177,42 @@ namespace DynamicIsland.ViewModels
         public string AutoStartStatusText => IsAutoStartEnabled ? "Автозапуск: Вкл" : "Автозапуск: Выкл";
         public string SoundStatusText => IsSoundEnabled ? "Звук: Вкл" : "Звук: Выкл";
 
+        // ================= AI АГЕНТ И ГОЛОС =================
+        public ObservableCollection<ChatMessageItem> ChatMessages { get; } = new();
+
+        [ObservableProperty]
+        private string _agentUserInput = string.Empty;
+
+        [ObservableProperty]
+        private bool _isAgentBusy;
+
+        [ObservableProperty]
+        private string _agentBusyStatus = "Думаю...";
+
+        [ObservableProperty]
+        private bool _isVoiceRecording;
+
+        [ObservableProperty]
+        private bool _isAiSettingsOpen;
+
+        [ObservableProperty]
+        private string _aiSettingsBaseUrl = string.Empty;
+
+        [ObservableProperty]
+        private string _aiSettingsApiKey = string.Empty;
+
+        [ObservableProperty]
+        private string _aiSettingsModel = string.Empty;
+
+        [ObservableProperty]
+        private bool _aiSettingsEnableControl = true;
+
+        [ObservableProperty]
+        private bool _aiSettingsEnableTts = true;
+
+        [ObservableProperty]
+        private string _aiStatusSummary = "OpenAI (gpt-4o-mini)";
+
         // Размеры капсулы
         [ObservableProperty]
         private double _islandWidth = 180;
@@ -197,7 +235,9 @@ namespace DynamicIsland.ViewModels
             ITimerService timerService,
             ISoundEffectService soundEffectService,
             IDropZoneService dropZoneService,
-            IWeatherService weatherService)
+            IWeatherService weatherService,
+            IAiAgentService aiAgentService,
+            IVoiceService voiceService)
         {
             _cursorTrackerService = cursorTrackerService;
             _mediaService = mediaService;
@@ -209,6 +249,22 @@ namespace DynamicIsland.ViewModels
             _soundEffectService = soundEffectService;
             _dropZoneService = dropZoneService;
             _weatherService = weatherService;
+            _aiAgentService = aiAgentService;
+            _voiceService = voiceService;
+
+            var cfg = _aiAgentService.Config;
+            AiSettingsBaseUrl = cfg.BaseUrl;
+            AiSettingsApiKey = cfg.ApiKey;
+            AiSettingsModel = cfg.Model;
+            AiSettingsEnableControl = cfg.EnableComputerControl;
+            AiSettingsEnableTts = cfg.EnableVoiceTts;
+            AiStatusSummary = $"{cfg.Model}";
+
+            ChatMessages.Add(new ChatMessageItem
+            {
+                Role = "assistant",
+                Content = "Привет! Я твой AI-ассистент в Dynamic Island. Могу отвечать на вопросы, запускать программы, выполнять скрипты PowerShell, делать скриншоты или регулировать звук. Нажми 🎙️ для голосового ввода!"
+            });
 
             for (int i = 0; i < 14; i++)
             {
@@ -843,6 +899,171 @@ namespace DynamicIsland.ViewModels
             App.Current?.Shutdown();
         }
 
+        // ================= AI АГЕНТ И ГОЛОСОВОЕ УПРАВЛЕНИЕ =================
+
+        [RelayCommand]
+        public async Task SendAgentMessage()
+        {
+            if (string.IsNullOrWhiteSpace(AgentUserInput) || IsAgentBusy) return;
+
+            string text = AgentUserInput.Trim();
+            AgentUserInput = string.Empty;
+
+            ChatMessages.Add(new ChatMessageItem
+            {
+                Role = "user",
+                Content = text
+            });
+
+            IsAgentBusy = true;
+            AgentBusyStatus = "Думаю...";
+
+            var result = await _aiAgentService.SendMessageAsync(
+                new System.Collections.Generic.List<ChatMessageItem>(ChatMessages),
+                text,
+                status => App.Current?.Dispatcher.Invoke(() => AgentBusyStatus = status)
+            );
+
+            IsAgentBusy = false;
+
+            if (result.Success)
+            {
+                ChatMessages.Add(new ChatMessageItem
+                {
+                    Role = "assistant",
+                    Content = result.ReplyText,
+                    ActionBadge = string.IsNullOrEmpty(result.ExecutedAction) ? "" : $"⚡ {result.ExecutedAction}"
+                });
+
+                if (_aiAgentService.Config.EnableVoiceTts)
+                {
+                    await _voiceService.SpeakTextAsync(result.ReplyText);
+                }
+            }
+            else
+            {
+                ChatMessages.Add(new ChatMessageItem
+                {
+                    Role = "assistant",
+                    Content = $"⚠ {result.ErrorMessage}"
+                });
+            }
+        }
+
+        [RelayCommand]
+        public async Task ToggleVoiceRecording()
+        {
+            if (!IsVoiceRecording)
+            {
+                _voiceService.StartRecording();
+                IsVoiceRecording = true;
+                _soundEffectService.PlayPop();
+            }
+            else
+            {
+                IsVoiceRecording = false;
+                _soundEffectService.PlaySnap();
+                IsAgentBusy = true;
+                AgentBusyStatus = "Распознаю голос...";
+
+                string transcribed = await _voiceService.StopRecordingAndTranscribeAsync(_aiAgentService.Config.ApiKey, _aiAgentService.Config.BaseUrl);
+                IsAgentBusy = false;
+
+                if (!string.IsNullOrWhiteSpace(transcribed))
+                {
+                    AgentUserInput = transcribed;
+                    await SendAgentMessage();
+                }
+            }
+        }
+
+        [RelayCommand]
+        public void ClearAgentChat()
+        {
+            ChatMessages.Clear();
+            ChatMessages.Add(new ChatMessageItem
+            {
+                Role = "assistant",
+                Content = "Чат очищен. Чем могу помочь?"
+            });
+            _voiceService.StopSpeaking();
+        }
+
+        [RelayCommand]
+        public void OpenAiSettings()
+        {
+            var cfg = _aiAgentService.Config;
+            AiSettingsBaseUrl = cfg.BaseUrl;
+            AiSettingsApiKey = cfg.ApiKey;
+            AiSettingsModel = cfg.Model;
+            AiSettingsEnableControl = cfg.EnableComputerControl;
+            AiSettingsEnableTts = cfg.EnableVoiceTts;
+            IsAiSettingsOpen = true;
+        }
+
+        [RelayCommand]
+        public void CloseAiSettings()
+        {
+            IsAiSettingsOpen = false;
+        }
+
+        [RelayCommand]
+        public void SaveAiSettings()
+        {
+            var cfg = _aiAgentService.Config;
+            cfg.BaseUrl = string.IsNullOrWhiteSpace(AiSettingsBaseUrl) ? "https://api.openai.com/v1" : AiSettingsBaseUrl.Trim();
+            cfg.ApiKey = AiSettingsApiKey?.Trim() ?? string.Empty;
+            cfg.Model = string.IsNullOrWhiteSpace(AiSettingsModel) ? "gpt-4o-mini" : AiSettingsModel.Trim();
+            cfg.EnableComputerControl = AiSettingsEnableControl;
+            cfg.EnableVoiceTts = AiSettingsEnableTts;
+
+            _aiAgentService.SaveConfig(cfg);
+            AiStatusSummary = $"{cfg.Model}";
+            _soundEffectService.PlaySnap();
+            IsAiSettingsOpen = false;
+        }
+
+        [RelayCommand]
+        public void ApplyAiPreset(string preset)
+        {
+            switch (preset)
+            {
+                case "OpenAI":
+                    AiSettingsBaseUrl = "https://api.openai.com/v1";
+                    AiSettingsModel = "gpt-4o-mini";
+                    break;
+                case "DeepSeek":
+                    AiSettingsBaseUrl = "https://api.deepseek.com/v1";
+                    AiSettingsModel = "deepseek-chat";
+                    break;
+                case "OpenRouter":
+                    AiSettingsBaseUrl = "https://openrouter.ai/api/v1";
+                    AiSettingsModel = "google/gemini-2.0-flash-exp:free";
+                    break;
+                case "Gemini":
+                    AiSettingsBaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai/";
+                    AiSettingsModel = "gemini-2.0-flash";
+                    break;
+                case "Local":
+                    AiSettingsBaseUrl = "http://localhost:11434/v1";
+                    AiSettingsModel = "llama3";
+                    break;
+            }
+        }
+
+        [RelayCommand]
+        public async Task SendQuickPrompt(string prompt)
+        {
+            AgentUserInput = prompt;
+            await SendAgentMessage();
+        }
+
+        [RelayCommand]
+        public void StopTtsSpeech()
+        {
+            _voiceService.StopSpeaking();
+        }
+
         public void UpdateScreenPosition(double screenCenterX, double screenTopY)
         {
             _cursorTrackerService.UpdateIslandScreenPosition(screenCenterX, screenTopY);
@@ -869,6 +1090,7 @@ namespace DynamicIsland.ViewModels
             _clipboardService.Dispose();
             _timerService.Dispose();
             _weatherService.Dispose();
+            _voiceService.Dispose();
             _hudDismissTimer.Stop();
         }
     }

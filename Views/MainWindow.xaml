@@ -392,6 +392,9 @@
                             <Button Style="{StaticResource ModeChipButton}" Content="Док" Margin="0,0,4,0"
                                     Background="{Binding ExpandedTab, Converter={StaticResource ModeActiveBrushConverter}, ConverterParameter=Apps}"
                                     Command="{Binding SetExpandedTabCommand}" CommandParameter="Apps"/>
+                            <Button Style="{StaticResource ModeChipButton}" Content="✦ AI Агент" Margin="0,0,4,0"
+                                    Background="{Binding ExpandedTab, Converter={StaticResource ModeActiveBrushConverter}, ConverterParameter=AI}"
+                                    Command="{Binding SetExpandedTabCommand}" CommandParameter="AI"/>
                         </StackPanel>
 
                         <!-- Правые кнопки управления -->
@@ -707,6 +710,137 @@
                     </Grid>
 
 
+                    <!-- ВКЛАДКА 6: AI АГЕНТ И ГОЛОСОВОЕ УПРАВЛЕНИЕ -->
+                    <Grid Grid.Row="2">
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ExpandedTab}" Value="AI">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Верхняя статус-строка AI -->
+                        <DockPanel Grid.Row="0" Margin="0,0,0,5">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="✦ AI Ассистент" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold" Margin="0,0,6,0"/>
+                                <Border Background="#252528" CornerRadius="8" Padding="6,2" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding AiStatusSummary}" Foreground="#8E8E93" FontSize="9"/>
+                                </Border>
+                                <TextBlock Text="{Binding AgentBusyStatus}" Foreground="#0A84FF" FontSize="9" Margin="8,0,0,0" VerticalAlignment="Center"
+                                           Visibility="{Binding IsAgentBusy, Converter={StaticResource BoolToVisConverter}}"/>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Style="{StaticResource ModeChipButton}" Content="🔊 Стоп" Padding="6,2" FontSize="9" Margin="0,0,4,0"
+                                        Command="{Binding StopTtsSpeechCommand}" ToolTip="Остановить голос"/>
+                                <Button Style="{StaticResource ModeChipButton}" Content="⚙ Настройки" Padding="6,2" FontSize="9" Margin="0,0,4,0"
+                                        Command="{Binding OpenAiSettingsCommand}" ToolTip="Настройки API ключа и модели"/>
+                                <Button Style="{StaticResource ModeChipButton}" Content="🗑" Padding="6,2" FontSize="9"
+                                        Command="{Binding ClearAgentChatCommand}" ToolTip="Очистить диалог"/>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <!-- Область сообщений чата -->
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                      Margin="0,0,0,5" MaxHeight="98">
+                            <ItemsControl ItemsSource="{Binding ChatMessages}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,2">
+                                            <!-- Сообщение пользователя -->
+                                            <Border HorizontalAlignment="Right" Background="#0A84FF" CornerRadius="12,12,2,12"
+                                                    Padding="9,5" MaxWidth="310"
+                                                    Visibility="{Binding IsUser, Converter={StaticResource BoolToVisConverter}}">
+                                                <TextBlock Text="{Binding Content}" Foreground="#FFFFFF" FontSize="10.5" TextWrapping="Wrap"/>
+                                            </Border>
+
+                                            <!-- Сообщение ассистента -->
+                                            <Border HorizontalAlignment="Left" Background="#20FFFFFF" CornerRadius="12,12,12,2"
+                                                    Padding="9,5" MaxWidth="330"
+                                                    Visibility="{Binding IsAssistant, Converter={StaticResource BoolToVisConverter}}">
+                                                <StackPanel>
+                                                    <Border Background="#30D158" CornerRadius="4" Padding="4,1" Margin="0,0,0,3" HorizontalAlignment="Left"
+                                                            Visibility="{Binding HasBadge, Converter={StaticResource BoolToVisConverter}}">
+                                                        <TextBlock Text="{Binding ActionBadge}" Foreground="#000000" FontSize="8" FontWeight="Bold"/>
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Content}" Foreground="#F2F2F7" FontSize="10.5" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <!-- Быстрые действия / чипы подсказок -->
+                        <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,0,0,5">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource ModeChipButton}" Content="📸 Скриншот" Margin="0,0,4,0" Padding="6,2" FontSize="9"
+                                        Command="{Binding SendQuickPromptCommand}" CommandParameter="Сделай скриншот экрана"/>
+                                <Button Style="{StaticResource ModeChipButton}" Content="📊 Нагрузка ПК" Margin="0,0,4,0" Padding="6,2" FontSize="9"
+                                        Command="{Binding SendQuickPromptCommand}" CommandParameter="Какая нагрузка на процессор и видеокарту?"/>
+                                <Button Style="{StaticResource ModeChipButton}" Content="⏱ Таймер 15м" Margin="0,0,4,0" Padding="6,2" FontSize="9"
+                                        Command="{Binding SendQuickPromptCommand}" CommandParameter="Поставь таймер на 15 минут"/>
+                                <Button Style="{StaticResource ModeChipButton}" Content="🔊 Звук 40%" Margin="0,0,4,0" Padding="6,2" FontSize="9"
+                                        Command="{Binding SendQuickPromptCommand}" CommandParameter="Поставь громкость на 40%"/>
+                                <Button Style="{StaticResource ModeChipButton}" Content="🔒 Заблокировать" Margin="0,0,4,0" Padding="6,2" FontSize="9"
+                                        Command="{Binding SendQuickPromptCommand}" CommandParameter="Заблокируй экран компьютера"/>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- Поле ввода с микрофоном и кнопкой отправки -->
+                        <Grid Grid.Row="3">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Кнопка микрофона (запись голоса) -->
+                            <Button Grid.Column="0" Command="{Binding ToggleVoiceRecordingCommand}" Margin="0,0,6,0"
+                                    ToolTip="Голосовое управление (нажмите и говорите, нажмите еще раз для отправки)"
+                                    Width="30" Height="28" Cursor="Hand">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource ModeChipButton}">
+                                        <Setter Property="Background" Value="#252528"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsVoiceRecording}" Value="True">
+                                                <Setter Property="Background" Value="#FF3B30"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                                <TextBlock Text="🎙️" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Button>
+
+                            <!-- Текстовое поле -->
+                            <TextBox Grid.Column="1" Text="{Binding AgentUserInput, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="#252528" Foreground="#FFFFFF" BorderBrush="#35FFFFFF" BorderThickness="1"
+                                     Padding="8,4" FontSize="10.5" VerticalContentAlignment="Center">
+                                <TextBox.InputBindings>
+                                    <KeyBinding Key="Return" Command="{Binding SendAgentMessageCommand}"/>
+                                </TextBox.InputBindings>
+                            </TextBox>
+
+                            <!-- Кнопка отправки -->
+                            <Button Grid.Column="2" Content="➤" Style="{StaticResource ModeChipButton}"
+                                    Background="#0A84FF" Foreground="#FFFFFF" FontWeight="Bold"
+                                    Padding="10,4" Margin="6,0,0,0" Command="{Binding SendAgentMessageCommand}"
+                                    ToolTip="Отправить запрос ассистенту"/>
+                        </Grid>
+                    </Grid>
+
+
                     <!-- Нижний статус-бар: звуки, автозапуск и погода -->
                     <Grid Grid.Row="3" Margin="0,10,0,0">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
@@ -823,6 +957,72 @@
                         <!-- Статус текущего выбора -->
                         <TextBlock Grid.Row="3" Text="{Binding CityPickerStatusMessage}"
                                    Foreground="#8E8E93" FontSize="10" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                    </Grid>
+                </Border>
+
+                <!-- Окно настроек AI Агента и Голоса (Overlay) -->
+                <Border Visibility="{Binding IsAiSettingsOpen, Converter={StaticResource BoolToVisConverter}}"
+                        Background="#F5141416" CornerRadius="18" BorderBrush="#25FFFFFF" BorderThickness="1"
+                        Margin="8" Padding="14,10" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                        Panel.ZIndex="60">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Заголовок и закрытие -->
+                        <DockPanel Grid.Row="0" Margin="0,0,0,6">
+                            <TextBlock Text="⚙ Настройки AI Агента и Голоса" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <Button Content="✕" Style="{StaticResource ModeChipButton}" HorizontalAlignment="Right" Padding="6,2" FontSize="9"
+                                    Command="{Binding CloseAiSettingsCommand}"/>
+                        </DockPanel>
+
+                        <!-- Быстрые пресеты провайдеров -->
+                        <WrapPanel Grid.Row="1" Margin="0,0,0,6">
+                            <TextBlock Text="Пресеты:" Foreground="#8E8E93" FontSize="9" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <Button Content="OpenAI" Style="{StaticResource ModeChipButton}" Margin="0,0,4,2" Padding="6,2" FontSize="9"
+                                    Command="{Binding ApplyAiPresetCommand}" CommandParameter="OpenAI"/>
+                            <Button Content="DeepSeek" Style="{StaticResource ModeChipButton}" Margin="0,0,4,2" Padding="6,2" FontSize="9"
+                                    Command="{Binding ApplyAiPresetCommand}" CommandParameter="DeepSeek"/>
+                            <Button Content="OpenRouter" Style="{StaticResource ModeChipButton}" Margin="0,0,4,2" Padding="6,2" FontSize="9"
+                                    Command="{Binding ApplyAiPresetCommand}" CommandParameter="OpenRouter"/>
+                            <Button Content="Gemini" Style="{StaticResource ModeChipButton}" Margin="0,0,4,2" Padding="6,2" FontSize="9"
+                                    Command="{Binding ApplyAiPresetCommand}" CommandParameter="Gemini"/>
+                            <Button Content="Ollama" Style="{StaticResource ModeChipButton}" Margin="0,0,4,2" Padding="6,2" FontSize="9"
+                                    Command="{Binding ApplyAiPresetCommand}" CommandParameter="Local"/>
+                        </WrapPanel>
+
+                        <!-- Поля настроек -->
+                        <StackPanel Grid.Row="2">
+                            <TextBlock Text="Base URL (OpenAI-совместимый API):" Foreground="#8E8E93" FontSize="9" Margin="0,0,0,2"/>
+                            <TextBox Text="{Binding AiSettingsBaseUrl, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="#252528" Foreground="#FFFFFF" BorderBrush="#35FFFFFF" BorderThickness="1"
+                                     Padding="6,3" FontSize="10" Margin="0,0,0,5"/>
+
+                            <TextBlock Text="API Key (OpenAI / DeepSeek / Token Club / OpenRouter):" Foreground="#8E8E93" FontSize="9" Margin="0,0,0,2"/>
+                            <TextBox Text="{Binding AiSettingsApiKey, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="#252528" Foreground="#FFFFFF" BorderBrush="#35FFFFFF" BorderThickness="1"
+                                     Padding="6,3" FontSize="10" Margin="0,0,0,5"/>
+
+                            <TextBlock Text="Название модели:" Foreground="#8E8E93" FontSize="9" Margin="0,0,0,2"/>
+                            <TextBox Text="{Binding AiSettingsModel, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="#252528" Foreground="#FFFFFF" BorderBrush="#35FFFFFF" BorderThickness="1"
+                                     Padding="6,3" FontSize="10" Margin="0,0,0,6"/>
+
+                            <CheckBox Content="Управление ПК (запуск программ, powershell, скриншоты)"
+                                      IsChecked="{Binding AiSettingsEnableControl}" Foreground="#FFFFFF" FontSize="9.5" Margin="0,0,0,4"/>
+
+                            <CheckBox Content="Озвучивать ответы голосом (TTS Irina/Zira)"
+                                      IsChecked="{Binding AiSettingsEnableTts}" Foreground="#FFFFFF" FontSize="9.5"/>
+                        </StackPanel>
+
+                        <!-- Кнопка сохранения -->
+                        <Button Grid.Row="3" Content="Сохранить настройки" Style="{StaticResource ModeChipButton}"
+                                Background="#30D158" Foreground="#000000" FontWeight="Bold" HorizontalAlignment="Right"
+                                Padding="12,5" Margin="0,4,0,0" Command="{Binding SaveAiSettingsCommand}"/>
                     </Grid>
                 </Border>
             </Grid>
