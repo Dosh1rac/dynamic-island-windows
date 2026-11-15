@@ -55,6 +55,9 @@ namespace DynamicIsland
                 var notificationService = new SystemNotificationService();
                 var clipboardService = new ClipboardService();
                 var timerService = new TimerService();
+                var soundService = new SoundEffectService();
+                var dropZoneService = new DropZoneService();
+                var weatherService = new WeatherService();
                 var trayService = new TrayService();
 
                 var viewModel = new MainViewModel(
@@ -64,7 +67,10 @@ namespace DynamicIsland
                     hardwareMonitor,
                     notificationService,
                     clipboardService,
-                    timerService
+                    timerService,
+                    soundService,
+                    dropZoneService,
+                    weatherService
                 );
 
                 var mainWindow = new MainWindow(
@@ -76,7 +82,7 @@ namespace DynamicIsland
 
                 MainWindow = mainWindow;
                 mainWindow.Show();
-                Log("MainWindow.Show() called successfully with extended services.");
+                Log("MainWindow.Show() with Maine Coon pet, DropZone and SoundFX successfully started.");
             }
             catch (Exception ex)
             {

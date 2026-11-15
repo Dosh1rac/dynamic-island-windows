@@ -7,7 +7,7 @@
         xmlns:models="clr-namespace:DynamicIsland.Models"
         mc:Ignorable="d"
         Title="Dynamic Island"
-        Width="580" Height="300"
+        Width="600" Height="340"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -17,6 +17,10 @@
         WindowStartupLocation="Manual"
         SnapsToDevicePixels="True"
         UseLayoutRounding="True"
+        AllowDrop="True"
+        DragEnter="Window_DragEnter"
+        DragLeave="Window_DragLeave"
+        Drop="Window_Drop"
         Loaded="Window_Loaded"
         Closing="Window_Closing">
 
@@ -28,13 +32,6 @@
         <helpers:BooleanToVisibilityInvertedConverter x:Key="BoolToVisInvertedConverter"/>
         <helpers:CornerRadiusConverter x:Key="CornerRadiusConverter"/>
         <BooleanToVisibilityConverter x:Key="BoolToVisConverter"/>
-
-        <!-- Деликатный верхний блик жидкой формы (Liquid Specular) -->
-        <LinearGradientBrush x:Key="LiquidGlossBrush" StartPoint="0.5,0" EndPoint="0.5,1">
-            <GradientStop Color="#1AFFFFFF" Offset="0.0"/>
-            <GradientStop Color="#08FFFFFF" Offset="0.4"/>
-            <GradientStop Color="#00000000" Offset="1.0"/>
-        </LinearGradientBrush>
 
         <!-- Круглые кнопки управления -->
         <Style x:Key="IslandCircleButton" TargetType="Button">
@@ -117,7 +114,38 @@
     <!-- Корневой контейнер -->
     <Grid HorizontalAlignment="Center" VerticalAlignment="Top">
 
-        <!-- Основная жидкая капсула острова: ЧИСТЫЙ МОНОЛИТ БЕЗ ТЕНЕЙ И БЕЗ РАМОК -->
+        <!-- ================= ИНТЕРАКТИВНЫЙ ПИТОМЕЦ: РЫЖИЙ МЕЙН-КУН ================= -->
+        <Grid x:Name="CatPetContainer"
+              HorizontalAlignment="Center" VerticalAlignment="Top"
+              Margin="0,0,0,0"
+              Panel.ZIndex="10"
+              Cursor="Hand"
+              MouseLeftButtonDown="CatPet_MouseLeftButtonDown"
+              Visibility="{Binding IsPetEnabled, Converter={StaticResource BoolToVisConverter}}">
+
+            <Grid.RenderTransform>
+                <TransformGroup>
+                    <RotateTransform Angle="{Binding CatHeadAngle}" CenterX="24" CenterY="48"/>
+                    <ScaleTransform x:Name="CatScale" ScaleX="1.0" ScaleY="{Binding CatBlinkScaleY}" CenterX="24" CenterY="48"/>
+                    <TranslateTransform x:Name="CatBounce" Y="-28"/>
+                </TransformGroup>
+            </Grid.RenderTransform>
+
+            <!-- Фото-спрайт пушистого котенка мейн-куна с большими ушками-кисточками -->
+            <Image Source="/Assets/cat_mainecoon.png" Width="48" Height="56"
+                   Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+
+            <!-- Всплывающее сердечко при поглаживании/клике -->
+            <TextBlock x:Name="HeartText" Text="❤️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Top"
+                       Margin="0,-16,0,0" Opacity="0.0">
+                <TextBlock.RenderTransform>
+                    <TranslateTransform x:Name="HeartTranslate" Y="0"/>
+                </TextBlock.RenderTransform>
+            </TextBlock>
+        </Grid>
+
+
+        <!-- ================= ОСНОВНАЯ КАПСУЛА ОСТРОВА ================= -->
         <Border x:Name="IslandCapsule"
                 Width="{Binding IslandWidth}"
                 Height="{Binding IslandHeight}"
@@ -126,6 +154,7 @@
                 BorderThickness="0"
                 ClipToBounds="True"
                 Cursor="Hand"
+                Margin="0,18,0,0"
                 RenderTransformOrigin="0.5, 0.0"
                 MouseLeftButtonDown="IslandCapsule_MouseLeftButtonDown"
                 MouseMove="IslandCapsule_MouseMove"
@@ -143,6 +172,18 @@
                 <!-- ================= 0. СВЕРНУТАЯ МИНИ-ПОЛОСКА ================= -->
                 <Border x:Name="MinimizedBarContent" Width="36" Height="3" Background="#77FFFFFF" CornerRadius="1.5"
                         HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+
+
+                <!-- ================= DROP ZONE ОВЕРЛЕЙ ПРИ ПЕРЕТАСКИВАНИИ ================= -->
+                <Border Background="#220A84FF" BorderBrush="#0A84FF" BorderThickness="1.5"
+                        CornerRadius="{Binding CapsuleCornerRadius, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource CornerRadiusConverter}}"
+                        Visibility="{Binding IsDragOverIsland, Converter={StaticResource BoolToVisConverter}}">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Path Data="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"
+                              Fill="#0A84FF" Stretch="Uniform" Width="14" Height="14" Margin="0,0,6,0"/>
+                        <TextBlock Text="Отпустите файл в карман..." Foreground="#0A84FF" FontSize="11" FontWeight="Bold"/>
+                    </StackPanel>
+                </Border>
 
 
                 <!-- ================= HUD. СИСТЕМНЫЕ ВСПЛЫВАЮЩИЕ УВЕДОМЛЕНИЯ ================= -->
@@ -181,7 +222,7 @@
                                    Visibility="{Binding ActiveNotification.ShowProgress, Converter={StaticResource BoolToVisConverter}}"/>
                     </Grid>
 
-                    <!-- Тонкая полоска громкости / прогресса снизу -->
+                    <!-- Тонкая полоска уровня снизу -->
                     <ProgressBar Grid.Row="1" Value="{Binding ActiveNotification.Progress}" Maximum="100" Height="2.5"
                                  Background="#20FFFFFF" Foreground="{Binding ActiveNotification.AccentColor}" BorderThickness="0" Margin="0,4,0,0"
                                  Visibility="{Binding ActiveNotification.ShowProgress, Converter={StaticResource BoolToVisConverter}}"/>
@@ -247,7 +288,7 @@
                         </Grid>
                     </StackPanel>
 
-                    <!-- Правая часть: либо активный таймер, либо индикатор сенсора -->
+                    <!-- Правая часть: либо активный таймер, либо индикатор погоды/сенсора -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                         <Border Background="#22FF9500" CornerRadius="8" Padding="5,2" Margin="6,0,2,0"
                                 Visibility="{Binding IsTimerActive, Converter={StaticResource BoolToVisConverter}}">
@@ -358,12 +399,13 @@
                     </Grid.RenderTransform>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Верхний бар с вкладками -->
-                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                    <!-- Вкладки управления -->
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                             <Button Style="{StaticResource ModeChipButton}" Content="Плеер" Margin="0,0,4,0"
                                     Background="{Binding ExpandedTab, Converter={StaticResource ModeActiveBrushConverter}, ConverterParameter=Media}"
@@ -374,12 +416,15 @@
                             <Button Style="{StaticResource ModeChipButton}" Content="Буфер" Margin="0,0,4,0"
                                     Background="{Binding ExpandedTab, Converter={StaticResource ModeActiveBrushConverter}, ConverterParameter=Clipboard}"
                                     Command="{Binding SetExpandedTabCommand}" CommandParameter="Clipboard"/>
+                            <Button Style="{StaticResource ModeChipButton}" Content="Карман файлов" Margin="0,0,4,0"
+                                    Background="{Binding ExpandedTab, Converter={StaticResource ModeActiveBrushConverter}, ConverterParameter=DropZone}"
+                                    Command="{Binding SetExpandedTabCommand}" CommandParameter="DropZone"/>
                             <Button Style="{StaticResource ModeChipButton}" Content="Док" Margin="0,0,4,0"
                                     Background="{Binding ExpandedTab, Converter={StaticResource ModeActiveBrushConverter}, ConverterParameter=Apps}"
                                     Command="{Binding SetExpandedTabCommand}" CommandParameter="Apps"/>
                         </StackPanel>
 
-                        <!-- Кнопка скрытия в полоску и кнопка свернуть -->
+                        <!-- Правые кнопки управления -->
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button Style="{StaticResource IslandCircleButton}" Width="22" Height="22" Margin="0,0,6,0"
                                     Command="{Binding MinimizeToBarCommand}" ToolTip="Скрыть в полоску">
@@ -409,9 +454,29 @@
                         </StackPanel>
                     </Grid>
 
+                    <!-- Строка быстрого калькулятора / Spotlight -->
+                    <Border Grid.Row="1" Background="#161618" CornerRadius="8" Padding="8,4" Margin="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Path Grid.Column="0" Data="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
+                                  Fill="#666666" Stretch="Uniform" Width="12" Height="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1" Text="{Binding CalcQuery, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="Transparent" Foreground="#FFFFFF" BorderThickness="0" FontSize="11"
+                                     VerticalAlignment="Center"/>
+                            <Button Grid.Column="2" Content="{Binding CalcResult}" Style="{StaticResource ModeChipButton}"
+                                    Background="#30D158" Foreground="#000000" FontSize="10" Padding="6,2"
+                                    Command="{Binding CopyCalcResultCommand}" ToolTip="Кликните, чтобы скопировать ответ"
+                                    Visibility="{Binding CalcResult, Converter={StaticResource NullToVisibilityConverter}}"/>
+                        </Grid>
+                    </Border>
+
 
                     <!-- ВКЛАДКА 1: ПЛЕЕР & СИСТЕМНЫЙ МОНИТОР -->
-                    <Grid Grid.Row="1">
+                    <Grid Grid.Row="2">
                         <Grid.Style>
                             <Style TargetType="Grid">
                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -425,10 +490,9 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="64"/>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="115"/>
+                            <ColumnDefinition Width="120"/>
                         </Grid.ColumnDefinitions>
 
-                        <!-- Обложка альбома -->
                         <Border Grid.Column="0" Width="64" Height="64" CornerRadius="12" ClipToBounds="True" Background="#1C1C1E" VerticalAlignment="Center">
                             <Grid>
                                 <Image Source="{Binding TrackThumbnail}" Stretch="UniformToFill"
@@ -439,10 +503,9 @@
                             </Grid>
                         </Border>
 
-                        <!-- Название, артист и кнопки плеера -->
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,8,0">
                             <TextBlock Text="{Binding TrackTitle}" Foreground="#FFFFFF" FontSize="13" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
-                            <TextBlock Text="{Binding TrackArtist}" Foreground="#8E8E93" FontSize="11" Margin="0,2,0,10" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding TrackArtist}" Foreground="#8E8E93" FontSize="11" Margin="0,2,0,8" TextTrimming="CharacterEllipsis"/>
 
                             <StackPanel Orientation="Horizontal">
                                 <Button Style="{StaticResource IslandCircleButton}" Width="30" Height="30" Margin="0,0,6,0" Command="{Binding SkipPreviousCommand}">
@@ -465,7 +528,7 @@
                         <!-- Монитор оборудования -->
                         <Border Grid.Column="2" Background="#141416" CornerRadius="10" Padding="8,8" VerticalAlignment="Center">
                             <StackPanel>
-                                <Grid Margin="0,0,0,6">
+                                <Grid Margin="0,0,0,4">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
@@ -478,7 +541,7 @@
                                 </Grid>
                                 <ProgressBar Value="{Binding CpuUsage}" Maximum="100" Height="3" Background="#26FFFFFF" Foreground="#0A84FF" BorderThickness="0"/>
 
-                                <Grid Margin="0,10,0,6">
+                                <Grid Margin="0,8,0,4">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
@@ -496,7 +559,7 @@
 
 
                     <!-- ВКЛАДКА 2: ФОКУС-ТАЙМЕР (POMODORO) -->
-                    <Grid Grid.Row="1">
+                    <Grid Grid.Row="2">
                         <Grid.Style>
                             <Style TargetType="Grid">
                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -508,13 +571,13 @@
                             </Style>
                         </Grid.Style>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="130"/>
+                            <ColumnDefinition Width="140"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
                         <StackPanel Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Center">
                             <TextBlock Text="{Binding TimerFormatted}" Foreground="#FFFFFF" FontSize="32" FontWeight="Bold" FontFamily="Consolas" HorizontalAlignment="Center"/>
-                            <ProgressBar Value="{Binding TimerProgress}" Maximum="1.0" Height="4" Width="90" Background="#22FFFFFF" Foreground="#FF9500" BorderThickness="0" Margin="0,6,0,0"/>
+                            <ProgressBar Value="{Binding TimerProgress}" Maximum="1.0" Height="4" Width="95" Background="#22FFFFFF" Foreground="#FF9500" BorderThickness="0" Margin="0,6,0,0"/>
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
@@ -534,7 +597,7 @@
 
 
                     <!-- ВКЛАДКА 3: БУФЕР ОБМЕНА -->
-                    <Grid Grid.Row="1">
+                    <Grid Grid.Row="2">
                         <Grid.Style>
                             <Style TargetType="Grid">
                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -556,7 +619,7 @@
                                 <ItemsControl ItemsSource="{Binding ClipboardHistory}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Background="#1C1C1E" CornerRadius="6" Padding="8,5" Margin="0,0,0,4">
+                                            <Border Background="#1C1C1E" CornerRadius="6" Padding="8,4" Margin="0,0,0,4">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*"/>
@@ -573,14 +636,73 @@
                                 </ItemsControl>
                             </ScrollViewer>
 
-                            <Button Grid.Row="1" Content="Очистить историю буфера" HorizontalAlignment="Right" Background="Transparent" Foreground="#8E8E93" BorderThickness="0" FontSize="9" Margin="0,4,0,0" Cursor="Hand"
+                            <Button Grid.Row="1" Content="Очистить историю буфера" HorizontalAlignment="Right" Background="Transparent" Foreground="#8E8E93" BorderThickness="0" FontSize="9" Margin="0,2,0,0" Cursor="Hand"
                                     Command="{Binding ClearClipboardCommand}"/>
                         </Grid>
                     </Grid>
 
 
-                    <!-- ВКЛАДКА 4: ДОК БЫСТРОГО ЗАПУСКА (APP LAUNCHER) -->
-                    <Grid Grid.Row="1">
+                    <!-- ВКЛАДКА 4: DROP ZONE (КАРМАН ФАЙЛОВ) -->
+                    <Grid Grid.Row="2">
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ExpandedTab}" Value="DropZone">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding DroppedFiles}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#1C1C1E" CornerRadius="8" Padding="8,6" Margin="0,0,0,4">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Path Grid.Column="0" Data="{Binding IconPathData}" Fill="#00E5FF" Stretch="Uniform" Width="14" Height="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding FileName}" Foreground="#FFFFFF" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{Binding FormattedSize}" Foreground="#8E8E93" FontSize="9"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <Button Content="Путь" Style="{StaticResource ModeChipButton}" FontSize="9" Padding="6,2" Margin="0,0,4,0"
+                                                                Command="{Binding DataContext.CopyFilePathCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                CommandParameter="{Binding}"/>
+                                                        <Button Content="✕" Style="{StaticResource ModeChipButton}" FontSize="9" Padding="6,2" Foreground="#FF453A"
+                                                                Command="{Binding DataContext.RemoveDroppedFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                CommandParameter="{Binding}"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+
+                            <Grid Grid.Row="1" Margin="0,4,0,0">
+                                <TextBlock Text="Перетаскивайте файлы прямо на остров в любое время" Foreground="#555555" FontSize="9" VerticalAlignment="Center"/>
+                                <Button Content="Очистить все" HorizontalAlignment="Right" Background="Transparent" Foreground="#8E8E93" BorderThickness="0" FontSize="9" Cursor="Hand"
+                                        Command="{Binding ClearDropZoneCommand}"/>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+
+
+                    <!-- ВКЛАДКА 5: ДОК БЫСТРОГО ЗАПУСКА -->
+                    <Grid Grid.Row="2">
                         <Grid.Style>
                             <Style TargetType="Grid">
                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -596,23 +718,18 @@
                             <Button Style="{StaticResource DockAppButton}" Margin="0,0,10,0" Command="{Binding LaunchAppCommand}" CommandParameter="browser" ToolTip="Браузер">
                                 <Path Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" Fill="#00E5FF" Stretch="Uniform" Width="20" Height="20"/>
                             </Button>
-
                             <Button Style="{StaticResource DockAppButton}" Margin="0,0,10,0" Command="{Binding LaunchAppCommand}" CommandParameter="explorer" ToolTip="Проводник">
                                 <Path Data="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" Fill="#FFD60A" Stretch="Uniform" Width="20" Height="20"/>
                             </Button>
-
                             <Button Style="{StaticResource DockAppButton}" Margin="0,0,10,0" Command="{Binding LaunchAppCommand}" CommandParameter="notepad" ToolTip="Блокнот">
                                 <Path Data="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" Fill="#30D158" Stretch="Uniform" Width="20" Height="20"/>
                             </Button>
-
                             <Button Style="{StaticResource DockAppButton}" Margin="0,0,10,0" Command="{Binding LaunchAppCommand}" CommandParameter="terminal" ToolTip="Терминал">
                                 <Path Data="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8h16v10zm-2-1h-6v-2h6v2zM7.5 17l-1.41-1.41L8.67 13l-2.58-2.59L7.5 9l4 4-4 4z" Fill="#FFFFFF" Stretch="Uniform" Width="20" Height="20"/>
                             </Button>
-
                             <Button Style="{StaticResource DockAppButton}" Margin="0,0,10,0" Command="{Binding LaunchAppCommand}" CommandParameter="taskmgr" ToolTip="Диспетчер задач">
                                 <Path Data="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-3-4-2 2.5-1.5-1.5L8 11.5l3 4 4-6 4 5h-7z" Fill="#FF9F0A" Stretch="Uniform" Width="20" Height="20"/>
                             </Button>
-
                             <Button Style="{StaticResource DockAppButton}" Command="{Binding LaunchAppCommand}" CommandParameter="settings" ToolTip="Настройки Windows">
                                 <Path Data="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" Fill="#BF5AF2" Stretch="Uniform" Width="20" Height="20"/>
                             </Button>
@@ -620,11 +737,26 @@
                     </Grid>
 
 
-                    <!-- Нижний статус-бар -->
-                    <Grid Grid.Row="2" Margin="0,10,0,0">
+                    <!-- Нижний статус-бар: переключатели котика, звука, автозапуска и погода -->
+                    <Grid Grid.Row="3" Margin="0,10,0,0">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                            <!-- Погода -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,10,0" ToolTip="{Binding WeatherDesc}">
+                                <Path Data="{Binding WeatherIcon}" Fill="#FFD60A" Stretch="Uniform" Width="11" Height="11" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding WeatherTemp}" Foreground="#8E8E93" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Кот On/Off -->
+                            <Button Content="{Binding IsPetEnabled, StringFormat='{}Кот: {0}'}"
+                                    Style="{StaticResource ModeChipButton}" Padding="6,2" FontSize="9" Margin="0,0,6,0" Command="{Binding TogglePetCommand}"/>
+
+                            <!-- Звук On/Off -->
+                            <Button Content="{Binding IsSoundEnabled, StringFormat='{}Звук: {0}'}"
+                                    Style="{StaticResource ModeChipButton}" Padding="6,2" FontSize="9" Margin="0,0,6,0" Command="{Binding ToggleSoundCommand}"/>
+
+                            <!-- Автозапуск -->
                             <Button Content="{Binding IsAutoStartEnabled, StringFormat='{}Автозапуск: {0}'}"
-                                    Padding="6,2" FontSize="9" Margin="0,0,10,0" Command="{Binding ToggleAutoStartCommand}">
+                                    Padding="6,2" FontSize="9" Margin="0,0,6,0" Command="{Binding ToggleAutoStartCommand}">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource ModeChipButton}">
                                         <Setter Property="Background" Value="#22FFFFFF"/>
@@ -637,7 +769,6 @@
                                     </Style>
                                 </Button.Style>
                             </Button>
-                            <TextBlock Text="Хоткей: Ctrl+Shift+I" Foreground="#666666" FontSize="9" VerticalAlignment="Center"/>
                         </StackPanel>
 
                         <Button HorizontalAlignment="Right" Content="Закрыть остров" Background="Transparent" Foreground="#FF453A" BorderThickness="0" FontSize="9" Cursor="Hand" Command="{Binding CloseAppCommand}"/>

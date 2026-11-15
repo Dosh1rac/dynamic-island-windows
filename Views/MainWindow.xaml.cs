@@ -11,6 +11,9 @@ using DynamicIsland.Services;
 using DynamicIsland.ViewModels;
 using Point = System.Windows.Point;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
+using DragEventArgs = System.Windows.DragEventArgs;
+using DataFormats = System.Windows.DataFormats;
+using DragDropEffects = System.Windows.DragDropEffects;
 
 namespace DynamicIsland.Views
 {
@@ -30,7 +33,6 @@ namespace DynamicIsland.Views
         private bool _swipeOccurred;
         private DateTime _lastMinimizedTime = DateTime.MinValue;
 
-        // DependencyProperty для плавной интерполяции скругления углов
         public static readonly DependencyProperty CapsuleCornerRadiusProperty =
             DependencyProperty.Register(nameof(CapsuleCornerRadius), typeof(double), typeof(MainWindow),
                 new PropertyMetadata(18.0));
@@ -41,7 +43,6 @@ namespace DynamicIsland.Views
             set => SetValue(CapsuleCornerRadiusProperty, value);
         }
 
-        // Физические кривые для базовой интерполяции размеров
         private readonly IEasingFunction _springEase = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.22 };
         private readonly IEasingFunction _smoothEase = new QuarticEase { EasingMode = EasingMode.EaseOut };
 
@@ -67,7 +68,7 @@ namespace DynamicIsland.Views
             App.Log("MainWindow Window_Loaded enter.");
             double screenWidth = SystemParameters.PrimaryScreenWidth;
             Left = (screenWidth - Width) / 2;
-            Top = 6;
+            Top = 2; // Чуть ближе к верхнему краю для идеальной посадки котенка
             App.Log($"MainWindow positioned at Left={Left}, Top={Top}, Width={Width}, Height={Height}.");
 
             _hwnd = new WindowInteropHelper(this).Handle;
@@ -95,7 +96,7 @@ namespace DynamicIsland.Views
             );
 
             double centerX = Left + (Width / 2);
-            double centerY = Top + 18;
+            double centerY = Top + 36;
             _viewModel.UpdateScreenPosition(centerX, centerY);
 
             UpdateContentVisibility(immediate: true);
@@ -112,7 +113,7 @@ namespace DynamicIsland.Views
             }
         }
 
-        // ================= ЖИДКАЯ АНИМАЦИЯ SQUASH & STRETCH (APPLE DYNAMIC ISLAND) =================
+        // ================= ЖИДКАЯ АНИМАЦИЯ SQUASH & STRETCH =================
 
         private void AnimateCapsuleState()
         {
@@ -122,7 +123,6 @@ namespace DynamicIsland.Views
             TimeSpan duration = TimeSpan.FromMilliseconds(380);
             IEasingFunction easing = currentState == IslandState.Minimized ? _smoothEase : _springEase;
 
-            // 1. Анимация габаритов Width, Height, CornerRadius
             var widthAnim = new DoubleAnimation
             {
                 To = _viewModel.IslandWidth,
@@ -148,10 +148,7 @@ namespace DynamicIsland.Views
             IslandCapsule.BeginAnimation(HeightProperty, heightAnim);
             BeginAnimation(CapsuleCornerRadiusProperty, cornerAnim);
 
-            // 2. Жидкая деформация упругого желе (Squash and Stretch)
             ApplyLiquidPhysics(currentState, isNotification);
-
-            // 3. Плавный морфинг контента с масштабированием
             UpdateContentVisibility(immediate: false);
         }
 
@@ -165,7 +162,6 @@ namespace DynamicIsland.Views
 
             if (isNotification)
             {
-                // Эффект жидкого всплывающего пузыря (Jelly Pop)
                 scaleYAnim.KeyFrames.Add(new SplineDoubleKeyFrame(1.0, KeyTime.FromTimeSpan(TimeSpan.Zero)));
                 scaleYAnim.KeyFrames.Add(new SplineDoubleKeyFrame(0.94, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(60)), keySplineFast));
                 scaleYAnim.KeyFrames.Add(new SplineDoubleKeyFrame(1.06, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(200)), keySplineBounce));
@@ -180,22 +176,20 @@ namespace DynamicIsland.Views
             }
             else if (state == IslandState.Expanded)
             {
-                // Фирменное растекание капли вниз (Liquid Flow & Snap)
                 scaleYAnim.KeyFrames.Add(new SplineDoubleKeyFrame(1.0, KeyTime.FromTimeSpan(TimeSpan.Zero)));
-                scaleYAnim.KeyFrames.Add(new SplineDoubleKeyFrame(0.92, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(70)), keySplineFast)); // Сжатие перед раскрытием
-                scaleYAnim.KeyFrames.Add(new SplineDoubleKeyFrame(1.07, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(230)), keySplineBounce)); // Вытягивание вниз
-                scaleYAnim.KeyFrames.Add(new SplineDoubleKeyFrame(0.98, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(340)))); // Отскок
-                scaleYAnim.KeyFrames.Add(new SplineDoubleKeyFrame(1.0, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(440)))); // Фиксация
+                scaleYAnim.KeyFrames.Add(new SplineDoubleKeyFrame(0.92, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(70)), keySplineFast));
+                scaleYAnim.KeyFrames.Add(new SplineDoubleKeyFrame(1.07, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(230)), keySplineBounce));
+                scaleYAnim.KeyFrames.Add(new SplineDoubleKeyFrame(0.98, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(340))));
+                scaleYAnim.KeyFrames.Add(new SplineDoubleKeyFrame(1.0, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(440))));
 
                 scaleXAnim.KeyFrames.Add(new SplineDoubleKeyFrame(1.0, KeyTime.FromTimeSpan(TimeSpan.Zero)));
-                scaleXAnim.KeyFrames.Add(new SplineDoubleKeyFrame(1.06, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(70)), keySplineFast)); // Растекание по бокам
-                scaleXAnim.KeyFrames.Add(new SplineDoubleKeyFrame(0.97, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(230)), keySplineBounce)); // Сужение
+                scaleXAnim.KeyFrames.Add(new SplineDoubleKeyFrame(1.06, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(70)), keySplineFast));
+                scaleXAnim.KeyFrames.Add(new SplineDoubleKeyFrame(0.97, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(230)), keySplineBounce));
                 scaleXAnim.KeyFrames.Add(new SplineDoubleKeyFrame(1.015, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(340))));
                 scaleXAnim.KeyFrames.Add(new SplineDoubleKeyFrame(1.0, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(440))));
             }
             else if (state == IslandState.Minimized)
             {
-                // Эффект втягивания капли в полоску (Liquid Droplet Suction)
                 scaleYAnim.KeyFrames.Add(new SplineDoubleKeyFrame(1.0, KeyTime.FromTimeSpan(TimeSpan.Zero)));
                 scaleYAnim.KeyFrames.Add(new SplineDoubleKeyFrame(1.10, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(80)), keySplineFast));
                 scaleYAnim.KeyFrames.Add(new SplineDoubleKeyFrame(0.92, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(220))));
@@ -208,7 +202,6 @@ namespace DynamicIsland.Views
             }
             else
             {
-                // Возврат в компактный вид (Bounce Back)
                 scaleYAnim.KeyFrames.Add(new SplineDoubleKeyFrame(1.0, KeyTime.FromTimeSpan(TimeSpan.Zero)));
                 scaleYAnim.KeyFrames.Add(new SplineDoubleKeyFrame(1.05, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(120)), keySplineFast));
                 scaleYAnim.KeyFrames.Add(new SplineDoubleKeyFrame(0.98, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(240))));
@@ -279,14 +272,12 @@ namespace DynamicIsland.Views
                     }
                     else
                     {
-                        // Плавный фейд появления
                         var fadeIn = new DoubleAnimation(0.0, 1.0, TimeSpan.FromMilliseconds(240))
                         {
                             EasingFunction = _smoothEase
                         };
                         elem.BeginAnimation(OpacityProperty, fadeIn);
 
-                        // Жидкое выныривание содержимого (Scale 0.92 -> 1.0)
                         if (targetScale != null)
                         {
                             var scalePop = new DoubleAnimation(0.92, 1.0, TimeSpan.FromMilliseconds(280))
@@ -304,6 +295,65 @@ namespace DynamicIsland.Views
                     elem.Opacity = 0.0;
                 }
             }
+        }
+
+        // ================= ИНТЕРАКТИВНЫЙ КОТИК МЕЙН-КУН =================
+
+        private void CatPet_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _viewModel.PetTheCatCommand.Execute(null);
+
+            // Анимация подпрыгивания котика
+            var bounceAnim = new DoubleAnimationUsingKeyFrames();
+            bounceAnim.KeyFrames.Add(new SplineDoubleKeyFrame(-28, KeyTime.FromTimeSpan(TimeSpan.Zero)));
+            bounceAnim.KeyFrames.Add(new SplineDoubleKeyFrame(-38, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(120))));
+            bounceAnim.KeyFrames.Add(new SplineDoubleKeyFrame(-26, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(240))));
+            bounceAnim.KeyFrames.Add(new SplineDoubleKeyFrame(-28, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(340))));
+            CatBounce.BeginAnimation(TranslateTransform.YProperty, bounceAnim);
+
+            // Всплывающее сердечко ❤️
+            HeartText.Opacity = 1.0;
+            var heartMove = new DoubleAnimation(0.0, -22.0, TimeSpan.FromMilliseconds(700)) { EasingFunction = _smoothEase };
+            var heartFade = new DoubleAnimation(1.0, 0.0, TimeSpan.FromMilliseconds(700));
+            HeartTranslate.BeginAnimation(TranslateTransform.YProperty, heartMove);
+            HeartText.BeginAnimation(OpacityProperty, heartFade);
+
+            e.Handled = true;
+        }
+
+        // ================= DROP ZONE (DRAG & DROP) =================
+
+        private void Window_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                _viewModel.IsDragOverIsland = true;
+                e.Effects = DragDropEffects.Copy;
+                e.Handled = true;
+            }
+        }
+
+        private void Window_DragLeave(object sender, DragEventArgs e)
+        {
+            _viewModel.IsDragOverIsland = false;
+        }
+
+        private void Window_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                if (files != null && files.Length > 0)
+                {
+                    _viewModel.HandleFilesDropped(files);
+                    if (_viewModel.CurrentState != IslandState.Expanded)
+                    {
+                        _viewModel.ToggleExpand();
+                    }
+                }
+            }
+            _viewModel.IsDragOverIsland = false;
+            e.Handled = true;
         }
 
         // ================= ЖЕСТЫ И СВАЙПЫ =================
@@ -364,7 +414,8 @@ namespace DynamicIsland.Views
                     return;
 
                 if (e.OriginalSource is not System.Windows.Controls.Button &&
-                    e.OriginalSource is not System.Windows.Shapes.Path)
+                    e.OriginalSource is not System.Windows.Shapes.Path &&
+                    e.OriginalSource is not System.Windows.Controls.TextBox)
                 {
                     if (_viewModel.CurrentState == IslandState.Minimized)
                     {

@@ -21,8 +21,12 @@ namespace DynamicIsland.ViewModels
         private readonly ISystemNotificationService _notificationService;
         private readonly IClipboardService _clipboardService;
         private readonly ITimerService _timerService;
+        private readonly ISoundEffectService _soundEffectService;
+        private readonly IDropZoneService _dropZoneService;
+        private readonly IWeatherService _weatherService;
 
         private readonly DispatcherTimer _hudDismissTimer;
+        private readonly DispatcherTimer _catIdleTimer;
 
         [ObservableProperty]
         private IslandState _currentState = IslandState.Idle;
@@ -48,6 +52,19 @@ namespace DynamicIsland.ViewModels
 
         [ObservableProperty]
         private double _eyeScaleY = 1.0;
+
+        // ================= ПИТОМЕЦ МЕЙН-КУН =================
+        [ObservableProperty]
+        private bool _isPetEnabled = true;
+
+        [ObservableProperty]
+        private double _catHeadAngle;
+
+        [ObservableProperty]
+        private bool _isCatPurring;
+
+        [ObservableProperty]
+        private double _catBlinkScaleY = 1.0;
 
         // Медиа
         [ObservableProperty]
@@ -111,13 +128,39 @@ namespace DynamicIsland.ViewModels
         // Буфер обмена
         public ObservableCollection<string> ClipboardHistory => _clipboardService.History;
 
-        // Вкладка в раскрытом режиме: "Media", "Timer", "Clipboard", "Apps"
+        // Drop Zone файлы
+        public ObservableCollection<DroppedFileInfo> DroppedFiles => _dropZoneService.Files;
+
+        [ObservableProperty]
+        private bool _isDragOverIsland;
+
+        // Погода
+        [ObservableProperty]
+        private string _weatherTemp = "+12°";
+
+        [ObservableProperty]
+        private string _weatherDesc = "Ясно";
+
+        [ObservableProperty]
+        private string _weatherIcon = "M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5z";
+
+        // Калькулятор Spotlight
+        [ObservableProperty]
+        private string _calcQuery = string.Empty;
+
+        [ObservableProperty]
+        private string _calcResult = string.Empty;
+
+        // Вкладка в раскрытом режиме: "Media", "Timer", "Clipboard", "Apps", "DropZone", "Tools"
         [ObservableProperty]
         private string _expandedTab = "Media";
 
-        // Автозагрузка
+        // Автозагрузка и звуки
         [ObservableProperty]
         private bool _isAutoStartEnabled;
+
+        [ObservableProperty]
+        private bool _isSoundEnabled = true;
 
         // Размеры капсулы
         [ObservableProperty]
@@ -138,7 +181,10 @@ namespace DynamicIsland.ViewModels
             IHardwareMonitorService hardwareMonitorService,
             ISystemNotificationService notificationService,
             IClipboardService clipboardService,
-            ITimerService timerService)
+            ITimerService timerService,
+            ISoundEffectService soundEffectService,
+            IDropZoneService dropZoneService,
+            IWeatherService weatherService)
         {
             _cursorTrackerService = cursorTrackerService;
             _mediaService = mediaService;
@@ -147,6 +193,9 @@ namespace DynamicIsland.ViewModels
             _notificationService = notificationService;
             _clipboardService = clipboardService;
             _timerService = timerService;
+            _soundEffectService = soundEffectService;
+            _dropZoneService = dropZoneService;
+            _weatherService = weatherService;
 
             for (int i = 0; i < 14; i++)
             {
@@ -158,6 +207,10 @@ namespace DynamicIsland.ViewModels
             _hudDismissTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1800) };
             _hudDismissTimer.Tick += (s, e) => DismissNotification();
 
+            _catIdleTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+            _catIdleTimer.Tick += OnCatIdleTick;
+            _catIdleTimer.Start();
+
             // Подписки
             _cursorTrackerService.CursorMoved += OnCursorMoved;
             _mediaService.MediaChanged += OnMediaChanged;
@@ -167,12 +220,15 @@ namespace DynamicIsland.ViewModels
             _clipboardService.ItemCopied += OnClipboardItemCopied;
             _timerService.TimerTicked += OnTimerTicked;
             _timerService.TimerFinished += OnTimerFinished;
+            _weatherService.WeatherUpdated += OnWeatherUpdated;
+            _dropZoneService.FileAdded += OnFileAddedToDropZone;
 
             // Запуск базовых сервисов
             _cursorTrackerService.Start();
             _audioVisualizerService.Start();
             _hardwareMonitorService.Start();
             _notificationService.Initialize();
+            _weatherService.Start();
             _ = _mediaService.InitializeAsync();
 
             UpdateStateAndDimensions();
@@ -185,6 +241,43 @@ namespace DynamicIsland.ViewModels
             RightPupilX = e.RightPupilX;
             RightPupilY = e.RightPupilY;
             EyeScaleY = e.EyeScaleY;
+
+            // Котенок поворачивает голову вслед за курсором (-10° .. +10°)
+            CatHeadAngle = Math.Clamp(e.LeftPupilX * 2.2, -10.0, 10.0);
+        }
+
+        private void OnCatIdleTick(object? sender, EventArgs e)
+        {
+            // Случайное подмигивание котенка
+            CatBlinkScaleY = 0.2;
+            var restoreTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(160) };
+            restoreTimer.Tick += (s, args) =>
+            {
+                restoreTimer.Stop();
+                CatBlinkScaleY = 1.0;
+            };
+            restoreTimer.Start();
+        }
+
+        [RelayCommand]
+        public void PetTheCat()
+        {
+            _soundEffectService.PlayPurr();
+            IsCatPurring = true;
+
+            var purrReset = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1200) };
+            purrReset.Tick += (s, args) =>
+            {
+                purrReset.Stop();
+                IsCatPurring = false;
+            };
+            purrReset.Start();
+        }
+
+        [RelayCommand]
+        public void TogglePet()
+        {
+            IsPetEnabled = !IsPetEnabled;
         }
 
         private void OnMediaChanged(object? sender, TrackInfo track)
@@ -227,19 +320,28 @@ namespace DynamicIsland.ViewModels
             });
         }
 
+        private void OnWeatherUpdated(object? sender, EventArgs e)
+        {
+            App.Current?.Dispatcher.Invoke(() =>
+            {
+                WeatherTemp = _weatherService.CurrentTemperature;
+                WeatherDesc = _weatherService.WeatherDescription;
+                WeatherIcon = _weatherService.WeatherIconPathData;
+            });
+        }
+
         // ================= СИСТЕМНЫЕ УВЕДОМЛЕНИЯ =================
 
         private void OnNotificationTriggered(object? sender, HudNotification notification)
         {
             App.Current?.Dispatcher.Invoke(() =>
             {
-                // Не перебиваем раскрытый режим
                 if (CurrentState == IslandState.Expanded) return;
 
                 ActiveNotification = notification;
                 IsShowingNotification = true;
+                _soundEffectService.PlayPop();
 
-                // Размер капсулы под HUD-уведомление
                 IslandWidth = 240;
                 IslandHeight = 40;
                 IslandCornerRadius = 20;
@@ -272,6 +374,66 @@ namespace DynamicIsland.ViewModels
             });
         }
 
+        // ================= DROP ZONE (AIRDROP КАРМАН) =================
+
+        public void HandleFilesDropped(string[] paths)
+        {
+            _dropZoneService.AddFiles(paths);
+            _soundEffectService.PlayDrop();
+            IsDragOverIsland = false;
+
+            _notificationService.TriggerCustomNotification(new HudNotification
+            {
+                Type = NotificationType.UsbConnected,
+                Title = "Файлы сохранены в карман",
+                Subtitle = $"Добавлено: {paths.Length} шт.",
+                ShowProgress = false,
+                IconPathData = "M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z",
+                AccentColor = "#30D158",
+                DurationMs = 2000
+            });
+        }
+
+        private void OnFileAddedToDropZone(object? sender, DroppedFileInfo file)
+        {
+            // Открываем вкладку DropZone при раскрытии
+            ExpandedTab = "DropZone";
+        }
+
+        [RelayCommand]
+        public void RemoveDroppedFile(DroppedFileInfo file)
+        {
+            _dropZoneService.RemoveFile(file);
+        }
+
+        [RelayCommand]
+        public void ClearDropZone()
+        {
+            _dropZoneService.Clear();
+        }
+
+        [RelayCommand]
+        public void CopyFilePath(DroppedFileInfo file)
+        {
+            _clipboardService.CopyToClipboard(file.FilePath);
+        }
+
+        // ================= КАЛЬКУЛЯТОР =================
+
+        partial void OnCalcQueryChanged(string value)
+        {
+            CalcResult = MiniCalculator.Evaluate(value);
+        }
+
+        [RelayCommand]
+        public void CopyCalcResult()
+        {
+            if (!string.IsNullOrWhiteSpace(CalcResult))
+            {
+                _clipboardService.CopyToClipboard(CalcResult);
+            }
+        }
+
         // ================= ФОКУС-ТАЙМЕР =================
 
         private void OnTimerTicked(object? sender, EventArgs e)
@@ -291,6 +453,7 @@ namespace DynamicIsland.ViewModels
         {
             App.Current?.Dispatcher.Invoke(() =>
             {
+                _soundEffectService.PlayPop();
                 _notificationService.TriggerCustomNotification(new HudNotification
                 {
                     Type = NotificationType.TimerFinished,
@@ -309,6 +472,7 @@ namespace DynamicIsland.ViewModels
         {
             if (int.TryParse(minutesStr, out int mins))
             {
+                _soundEffectService.PlayPop();
                 _timerService.Start(TimeSpan.FromMinutes(mins));
             }
         }
@@ -316,6 +480,7 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public void ToggleTimer()
         {
+            _soundEffectService.PlayPop();
             if (_timerService.IsRunning)
             {
                 _timerService.Pause();
@@ -326,13 +491,14 @@ namespace DynamicIsland.ViewModels
             }
             else
             {
-                _timerService.Start(TimeSpan.FromMinutes(25)); // По умолчанию 25 мин
+                _timerService.Start(TimeSpan.FromMinutes(25));
             }
         }
 
         [RelayCommand]
         public void ResetTimer()
         {
+            _soundEffectService.PlaySnap();
             _timerService.Reset();
         }
 
@@ -341,6 +507,7 @@ namespace DynamicIsland.ViewModels
         {
             if (int.TryParse(minutesStr, out int mins))
             {
+                _soundEffectService.PlayPop();
                 _timerService.AddMinutes(mins);
             }
         }
@@ -350,6 +517,7 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public void CopyClipboardItem(string text)
         {
+            _soundEffectService.PlaySnap();
             _clipboardService.CopyToClipboard(text);
         }
 
@@ -359,11 +527,12 @@ namespace DynamicIsland.ViewModels
             _clipboardService.ClearHistory();
         }
 
-        // ================= БЫСТРЫЙ ЗАПУСК (DOCK) =================
+        // ================= ДОК БЫСТРОГО ЗАПУСКА =================
 
         [RelayCommand]
         public void LaunchApp(string appKey)
         {
+            _soundEffectService.PlayPop();
             try
             {
                 switch (appKey.ToLowerInvariant())
@@ -398,13 +567,23 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public void ToggleAutoStart()
         {
+            _soundEffectService.PlayPop();
             IsAutoStartEnabled = !IsAutoStartEnabled;
             AutoStartHelper.SetAutoStart(IsAutoStartEnabled);
         }
 
         [RelayCommand]
+        public void ToggleSound()
+        {
+            IsSoundEnabled = !IsSoundEnabled;
+            _soundEffectService.IsSoundEnabled = IsSoundEnabled;
+            if (IsSoundEnabled) _soundEffectService.PlayPop();
+        }
+
+        [RelayCommand]
         public void SetExpandedTab(string tab)
         {
+            _soundEffectService.PlayPop();
             ExpandedTab = tab;
         }
 
@@ -488,8 +667,8 @@ namespace DynamicIsland.ViewModels
                     IslandCornerRadius = 22;
                     break;
                 case IslandState.Expanded:
-                    IslandWidth = 440;
-                    IslandHeight = 220;
+                    IslandWidth = 460;
+                    IslandHeight = 240;
                     IslandCornerRadius = 26;
                     break;
             }
@@ -505,17 +684,20 @@ namespace DynamicIsland.ViewModels
         {
             if (CurrentState == IslandState.Minimized)
             {
+                _soundEffectService.PlayPop();
                 RestoreFromMinimized();
                 return;
             }
 
             if (CurrentState == IslandState.Expanded)
             {
+                _soundEffectService.PlaySnap();
                 CurrentState = IslandState.Idle;
                 EvaluateDisplayState();
             }
             else
             {
+                _soundEffectService.PlayPop();
                 DismissNotification();
                 CurrentState = IslandState.Expanded;
                 UpdateDimensions();
@@ -525,6 +707,7 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public void MinimizeToBar()
         {
+            _soundEffectService.PlaySnap();
             DismissNotification();
             CurrentState = IslandState.Minimized;
             UpdateDimensions();
@@ -535,6 +718,7 @@ namespace DynamicIsland.ViewModels
         {
             if (CurrentState == IslandState.Minimized)
             {
+                _soundEffectService.PlayPop();
                 CurrentState = IslandState.Idle;
                 EvaluateDisplayState();
             }
@@ -545,6 +729,7 @@ namespace DynamicIsland.ViewModels
         {
             if (CurrentState == IslandState.Expanded)
             {
+                _soundEffectService.PlaySnap();
                 EvaluateDisplayState();
             }
         }
@@ -552,6 +737,7 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public void SetMode(string modeStr)
         {
+            _soundEffectService.PlayPop();
             if (Enum.TryParse<DisplayMode>(modeStr, true, out var mode))
             {
                 SelectedMode = mode;
@@ -562,24 +748,28 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public async Task TogglePlayPauseAsync()
         {
+            _soundEffectService.PlayPop();
             await _mediaService.TogglePlayPauseAsync();
         }
 
         [RelayCommand]
         public async Task SkipNextAsync()
         {
+            _soundEffectService.PlayPop();
             await _mediaService.SkipNextAsync();
         }
 
         [RelayCommand]
         public async Task SkipPreviousAsync()
         {
+            _soundEffectService.PlayPop();
             await _mediaService.SkipPreviousAsync();
         }
 
         [RelayCommand]
         public void ToggleClickThrough()
         {
+            _soundEffectService.PlayPop();
             IsClickThrough = !IsClickThrough;
             RequestClickThroughChanged?.Invoke(IsClickThrough);
         }
@@ -611,6 +801,8 @@ namespace DynamicIsland.ViewModels
             _clipboardService.ItemCopied -= OnClipboardItemCopied;
             _timerService.TimerTicked -= OnTimerTicked;
             _timerService.TimerFinished -= OnTimerFinished;
+            _weatherService.WeatherUpdated -= OnWeatherUpdated;
+            _dropZoneService.FileAdded -= OnFileAddedToDropZone;
 
             _cursorTrackerService.Dispose();
             _audioVisualizerService.Dispose();
@@ -619,7 +811,9 @@ namespace DynamicIsland.ViewModels
             _notificationService.Dispose();
             _clipboardService.Dispose();
             _timerService.Dispose();
+            _weatherService.Dispose();
             _hudDismissTimer.Stop();
+            _catIdleTimer.Stop();
         }
     }
 }
