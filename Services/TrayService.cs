@@ -7,7 +7,7 @@ namespace DynamicIsland.Services
 {
     public interface ITrayService : IDisposable
     {
-        void Initialize(Action onToggleVisible, Action onToggleClickThrough, Action onExit);
+        void Initialize(Action onToggleVisible, Action onToggleClickThrough, Action onPickCity, Action onExit);
         void UpdateAutoStartStatus();
     }
 
@@ -16,7 +16,7 @@ namespace DynamicIsland.Services
         private NotifyIcon? _notifyIcon;
         private ToolStripMenuItem? _autoStartMenuItem;
 
-        public void Initialize(Action onToggleVisible, Action onToggleClickThrough, Action onExit)
+        public void Initialize(Action onToggleVisible, Action onToggleClickThrough, Action onPickCity, Action onExit)
         {
             var contextMenu = new ContextMenuStrip();
 
@@ -24,6 +24,8 @@ namespace DynamicIsland.Services
             toggleItem.Font = new Font(toggleItem.Font, FontStyle.Bold);
 
             var clickThroughItem = new ToolStripMenuItem("Сквозной клик (Ctrl+Shift+I)", null, (s, e) => onToggleClickThrough());
+
+            var cityItem = new ToolStripMenuItem("📍 Сменить город погоды...", null, (s, e) => onPickCity());
 
             _autoStartMenuItem = new ToolStripMenuItem("Автозапуск с Windows", null, (s, e) =>
             {
@@ -38,6 +40,7 @@ namespace DynamicIsland.Services
             contextMenu.Items.Add(toggleItem);
             contextMenu.Items.Add(clickThroughItem);
             contextMenu.Items.Add(new ToolStripSeparator());
+            contextMenu.Items.Add(cityItem);
             contextMenu.Items.Add(_autoStartMenuItem);
             contextMenu.Items.Add(new ToolStripSeparator());
             contextMenu.Items.Add(exitItem);

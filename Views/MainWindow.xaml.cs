@@ -92,6 +92,11 @@ namespace DynamicIsland.Views
                     });
                 },
                 onToggleClickThrough: () => Dispatcher.Invoke(() => _viewModel.ToggleClickThrough()),
+                onPickCity: () => Dispatcher.Invoke(() =>
+                {
+                    _viewModel.ExpandIsland();
+                    _viewModel.IsCityPickerOpen = true;
+                }),
                 onExit: () => Dispatcher.Invoke(() => App.Current?.Shutdown())
             );
 

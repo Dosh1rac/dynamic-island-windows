@@ -708,11 +708,16 @@
                     <!-- Нижний статус-бар: звуки, автозапуск и погода -->
                     <Grid Grid.Row="3" Margin="0,10,0,0">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <!-- Погода -->
-                            <StackPanel Orientation="Horizontal" Margin="0,0,10,0" ToolTip="{Binding WeatherDesc}">
-                                <Path Data="{Binding WeatherIcon}" Fill="#FFD60A" Stretch="Uniform" Width="11" Height="11" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding WeatherTemp}" Foreground="#8E8E93" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                            </StackPanel>
+                            <!-- Погода (интерактивный чип с выбором города) -->
+                            <Button Style="{StaticResource ModeChipButton}"
+                                    Command="{Binding ToggleCityPickerCommand}"
+                                    ToolTip="{Binding WeatherFullTooltip}"
+                                    Padding="6,2" Margin="0,0,6,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="{Binding WeatherIcon}" Fill="#FFD60A" Stretch="Uniform" Width="10" Height="10" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding WeatherCityAndTemp}" Foreground="#E5E5EA" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
 
                             <!-- Звук On/Off -->
                             <Button Content="{Binding IsSoundEnabled, StringFormat='{}Звук: {0}'}"
@@ -738,6 +743,69 @@
                         <Button HorizontalAlignment="Right" Content="Закрыть остров" Background="Transparent" Foreground="#FF453A" BorderThickness="0" FontSize="9" Cursor="Hand" Command="{Binding CloseAppCommand}"/>
                     </Grid>
                 </Grid>
+
+                <!-- Окно выбора города погоды (Overlay) -->
+                <Border Visibility="{Binding IsCityPickerOpen, Converter={StaticResource BoolToVisConverter}}"
+                        Background="#F5141416" CornerRadius="18" BorderBrush="#25FFFFFF" BorderThickness="1"
+                        Margin="8" Padding="14,12" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                        Panel.ZIndex="50">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Заголовок и закрытие -->
+                        <DockPanel Grid.Row="0" Margin="0,0,0,10">
+                            <TextBlock Text="📍 Выбор города погоды (VPN / Ручной)" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <Button Content="✕" Style="{StaticResource ModeChipButton}" HorizontalAlignment="Right" Padding="6,2" FontSize="9"
+                                    Command="{Binding CloseCityPickerCommand}"/>
+                        </DockPanel>
+
+                        <!-- Поле ввода с кнопкой поиска -->
+                        <Grid Grid.Row="1" Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Text="{Binding CitySearchInput, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="#252528" Foreground="#FFFFFF" BorderBrush="#35FFFFFF" BorderThickness="1"
+                                     Padding="8,5" FontSize="11" VerticalContentAlignment="Center">
+                                <TextBox.InputBindings>
+                                    <KeyBinding Key="Return" Command="{Binding ApplyCitySearchCommand}"/>
+                                </TextBox.InputBindings>
+                            </TextBox>
+                            <Button Grid.Column="1" Content="Найти" Style="{StaticResource ModeChipButton}"
+                                    Background="#0A84FF" Foreground="#FFFFFF" FontWeight="SemiBold"
+                                    Padding="10,5" Margin="6,0,0,0" Command="{Binding ApplyCitySearchCommand}"/>
+                        </Grid>
+
+                        <!-- Быстрые пресеты -->
+                        <WrapPanel Grid.Row="2" Margin="0,0,0,8">
+                            <Button Content="📍 Авто по IP" Style="{StaticResource ModeChipButton}"
+                                    Background="#30D158" Foreground="#000000" FontWeight="Bold" Margin="0,0,4,4" Padding="7,3" FontSize="9"
+                                    Command="{Binding SetAutoCityCommand}" ToolTip="Определить автоматически по вашему текущему IP"/>
+                            <Button Content="Москва" Style="{StaticResource ModeChipButton}" Margin="0,0,4,4" Padding="7,3" FontSize="9"
+                                    Command="{Binding SetCityPresetCommand}" CommandParameter="Москва"/>
+                            <Button Content="Санкт-Петербург" Style="{StaticResource ModeChipButton}" Margin="0,0,4,4" Padding="7,3" FontSize="9"
+                                    Command="{Binding SetCityPresetCommand}" CommandParameter="Санкт-Петербург"/>
+                            <Button Content="Казань" Style="{StaticResource ModeChipButton}" Margin="0,0,4,4" Padding="7,3" FontSize="9"
+                                    Command="{Binding SetCityPresetCommand}" CommandParameter="Казань"/>
+                            <Button Content="Новосибирск" Style="{StaticResource ModeChipButton}" Margin="0,0,4,4" Padding="7,3" FontSize="9"
+                                    Command="{Binding SetCityPresetCommand}" CommandParameter="Новосибирск"/>
+                            <Button Content="Екатеринбург" Style="{StaticResource ModeChipButton}" Margin="0,0,4,4" Padding="7,3" FontSize="9"
+                                    Command="{Binding SetCityPresetCommand}" CommandParameter="Екатеринбург"/>
+                            <Button Content="Сочи" Style="{StaticResource ModeChipButton}" Margin="0,0,4,4" Padding="7,3" FontSize="9"
+                                    Command="{Binding SetCityPresetCommand}" CommandParameter="Сочи"/>
+                        </WrapPanel>
+
+                        <!-- Статус текущего выбора -->
+                        <TextBlock Grid.Row="3" Text="{Binding CityPickerStatusMessage}"
+                                   Foreground="#8E8E93" FontSize="10" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                    </Grid>
+                </Border>
             </Grid>
         </Border>
     </Grid>

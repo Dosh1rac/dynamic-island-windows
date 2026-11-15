@@ -130,6 +130,28 @@ namespace DynamicIsland.ViewModels
         [ObservableProperty]
         private string _weatherIcon = "M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5z";
 
+        [ObservableProperty]
+        private string _weatherCity = "Москва";
+
+        [ObservableProperty]
+        private string _weatherCountry = "Россия";
+
+        [ObservableProperty]
+        private bool _isWeatherAutoLocation = true;
+
+        [ObservableProperty]
+        private bool _isCityPickerOpen;
+
+        [ObservableProperty]
+        private string _citySearchInput = string.Empty;
+
+        [ObservableProperty]
+        private string _cityPickerStatusMessage = string.Empty;
+
+        public string WeatherCityAndTemp => $"{WeatherCity}: {WeatherTemp}";
+
+        public string WeatherFullTooltip => $"{WeatherCity} ({WeatherCountry}): {WeatherDesc} {WeatherTemp}\n{(IsWeatherAutoLocation ? "📍 Режим: Авто по IP (нажмите для смены)" : "📍 Режим: Выбран вручную (нажмите для смены)")}";
+
         // Калькулятор Spotlight
         [ObservableProperty]
         private string _calcQuery = string.Empty;
@@ -211,6 +233,9 @@ namespace DynamicIsland.ViewModels
             _hardwareMonitorService.Start();
             _notificationService.Initialize();
             _weatherService.Start();
+            WeatherCity = _weatherService.CurrentCity;
+            WeatherCountry = _weatherService.CurrentCountry;
+            IsWeatherAutoLocation = _weatherService.IsAutoLocation;
             _ = _mediaService.InitializeAsync();
 
             UpdateStateAndDimensions();
@@ -272,7 +297,77 @@ namespace DynamicIsland.ViewModels
                 WeatherTemp = _weatherService.CurrentTemperature;
                 WeatherDesc = _weatherService.WeatherDescription;
                 WeatherIcon = _weatherService.WeatherIconPathData;
+                WeatherCity = _weatherService.CurrentCity;
+                WeatherCountry = _weatherService.CurrentCountry;
+                IsWeatherAutoLocation = _weatherService.IsAutoLocation;
+                OnPropertyChanged(nameof(WeatherCityAndTemp));
+                OnPropertyChanged(nameof(WeatherFullTooltip));
             });
+        }
+
+        // ================= ВЫБОР ГОРОДА ПОГОДЫ =================
+
+        [RelayCommand]
+        public void ToggleCityPicker()
+        {
+            IsCityPickerOpen = !IsCityPickerOpen;
+            if (IsCityPickerOpen)
+            {
+                CityPickerStatusMessage = IsWeatherAutoLocation
+                    ? $"Текущий: {WeatherCity} (Авто по IP)"
+                    : $"Текущий: {WeatherCity} (Задан вручную)";
+            }
+        }
+
+        [RelayCommand]
+        public void CloseCityPicker()
+        {
+            IsCityPickerOpen = false;
+        }
+
+        [RelayCommand]
+        public async Task ApplyCitySearch()
+        {
+            if (string.IsNullOrWhiteSpace(CitySearchInput)) return;
+
+            CityPickerStatusMessage = "Поиск города...";
+            bool success = await _weatherService.SetManualCityAsync(CitySearchInput);
+            if (success)
+            {
+                CityPickerStatusMessage = $"✓ Установлен город: {_weatherService.CurrentCity}";
+                _soundEffectService.PlaySnap();
+                await Task.Delay(900);
+                IsCityPickerOpen = false;
+            }
+            else
+            {
+                CityPickerStatusMessage = "Город не найден, попробуйте иначе";
+            }
+        }
+
+        [RelayCommand]
+        public async Task SetCityPreset(string presetCity)
+        {
+            CityPickerStatusMessage = $"Применяем {presetCity}...";
+            bool success = await _weatherService.SetManualCityAsync(presetCity);
+            if (success)
+            {
+                CityPickerStatusMessage = $"✓ Установлен город: {_weatherService.CurrentCity}";
+                _soundEffectService.PlaySnap();
+                await Task.Delay(900);
+                IsCityPickerOpen = false;
+            }
+        }
+
+        [RelayCommand]
+        public async Task SetAutoCity()
+        {
+            CityPickerStatusMessage = "Определение по IP...";
+            await _weatherService.SetAutoLocationAsync();
+            CityPickerStatusMessage = $"✓ Авто по IP: {_weatherService.CurrentCity}";
+            _soundEffectService.PlaySnap();
+            await Task.Delay(900);
+            IsCityPickerOpen = false;
         }
 
         // ================= СИСТЕМНЫЕ УВЕДОМЛЕНИЯ =================
@@ -622,6 +717,18 @@ namespace DynamicIsland.ViewModels
         public void UpdateStateAndDimensions()
         {
             EvaluateDisplayState();
+        }
+
+        [RelayCommand]
+        public void ExpandIsland()
+        {
+            if (CurrentState != IslandState.Expanded)
+            {
+                DismissNotification();
+                _soundEffectService.PlayPop();
+                CurrentState = IslandState.Expanded;
+                UpdateStateAndDimensions();
+            }
         }
 
         [RelayCommand]
