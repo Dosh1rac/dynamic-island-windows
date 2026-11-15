@@ -112,7 +112,10 @@ namespace DynamicIsland.Views
         {
             if (e.PropertyName == nameof(MainViewModel.CurrentState) ||
                 e.PropertyName == nameof(MainViewModel.ActiveCompactView) ||
-                e.PropertyName == nameof(MainViewModel.IsShowingNotification))
+                e.PropertyName == nameof(MainViewModel.IsShowingNotification) ||
+                e.PropertyName == nameof(MainViewModel.ExpandedTab) ||
+                e.PropertyName == nameof(MainViewModel.IslandWidth) ||
+                e.PropertyName == nameof(MainViewModel.IslandHeight))
             {
                 Dispatcher.InvokeAsync(AnimateCapsuleState);
             }
