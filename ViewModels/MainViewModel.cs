@@ -686,6 +686,7 @@ namespace DynamicIsland.ViewModels
         {
             _soundEffectService.PlayPop();
             ExpandedTab = tab;
+            UpdateDimensions();
         }
 
         // ================= ЛОГИКА СОСТОЯНИЙ =================
@@ -768,9 +769,18 @@ namespace DynamicIsland.ViewModels
                     IslandCornerRadius = 22;
                     break;
                 case IslandState.Expanded:
-                    IslandWidth = 460;
-                    IslandHeight = 240;
-                    IslandCornerRadius = 26;
+                    if (string.Equals(ExpandedTab, "AI", StringComparison.OrdinalIgnoreCase))
+                    {
+                        IslandWidth = 640;
+                        IslandHeight = 440;
+                        IslandCornerRadius = 32;
+                    }
+                    else
+                    {
+                        IslandWidth = 460;
+                        IslandHeight = 240;
+                        IslandCornerRadius = 26;
+                    }
                     break;
             }
         }
