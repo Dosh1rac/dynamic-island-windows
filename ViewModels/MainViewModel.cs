@@ -165,10 +165,15 @@ namespace DynamicIsland.ViewModels
 
         // Автозагрузка и звуки
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(AutoStartStatusText))]
         private bool _isAutoStartEnabled;
 
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(SoundStatusText))]
         private bool _isSoundEnabled = true;
+
+        public string AutoStartStatusText => IsAutoStartEnabled ? "Автозапуск: Вкл" : "Автозапуск: Выкл";
+        public string SoundStatusText => IsSoundEnabled ? "Звук: Вкл" : "Звук: Выкл";
 
         // Размеры капсулы
         [ObservableProperty]

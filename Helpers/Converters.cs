@@ -41,6 +41,13 @@ namespace DynamicIsland.Helpers
                     return ActiveBrush;
                 }
             }
+            else if (value is string str && parameter is string pStr)
+            {
+                if (string.Equals(str, pStr, StringComparison.OrdinalIgnoreCase))
+                {
+                    return ActiveBrush;
+                }
+            }
             return InactiveBrush;
         }
 

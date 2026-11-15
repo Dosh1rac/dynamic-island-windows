@@ -59,9 +59,10 @@
             </Setter>
         </Style>
 
-        <!-- Стиль кнопок переключения вкладок -->
+        <!-- Стиль кнопок переключения вкладок и чипов -->
         <Style x:Key="ModeChipButton" TargetType="Button">
-            <Setter Property="Foreground" Value="#CCFFFFFF"/>
+            <Setter Property="Background" Value="#252528"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
             <Setter Property="FontSize" Value="10"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -71,11 +72,12 @@
                         <Border x:Name="chipBorder" Background="{TemplateBinding Background}" 
                                 BorderThickness="0"
                                 CornerRadius="11" Padding="8,4">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextBlock.Foreground="{TemplateBinding Foreground}"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="chipBorder" Property="Opacity" Value="0.85"/>
+                                <Setter TargetName="chipBorder" Property="Opacity" Value="0.80"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -710,28 +712,45 @@
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
                             <!-- Погода (интерактивный чип с выбором города) -->
                             <Button Style="{StaticResource ModeChipButton}"
+                                    Background="#22FFFFFF"
                                     Command="{Binding ToggleCityPickerCommand}"
                                     ToolTip="{Binding WeatherFullTooltip}"
-                                    Padding="6,2" Margin="0,0,6,0">
+                                    Padding="8,3" Margin="0,0,6,0">
                                 <StackPanel Orientation="Horizontal">
-                                    <Path Data="{Binding WeatherIcon}" Fill="#FFD60A" Stretch="Uniform" Width="10" Height="10" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="{Binding WeatherCityAndTemp}" Foreground="#E5E5EA" FontSize="9" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    <Path Data="{Binding WeatherIcon}" Fill="#FFD60A" Stretch="Uniform" Width="11" Height="11" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding WeatherCityAndTemp}" Foreground="#FFFFFF" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 
                             <!-- Звук On/Off -->
-                            <Button Content="{Binding IsSoundEnabled, StringFormat='{}Звук: {0}'}"
-                                    Style="{StaticResource ModeChipButton}" Padding="6,2" FontSize="9" Margin="0,0,6,0" Command="{Binding ToggleSoundCommand}"/>
-
-                            <!-- Автозапуск -->
-                            <Button Content="{Binding IsAutoStartEnabled, StringFormat='{}Автозапуск: {0}'}"
-                                    Padding="6,2" FontSize="9" Margin="0,0,6,0" Command="{Binding ToggleAutoStartCommand}">
+                            <Button Content="{Binding SoundStatusText}"
+                                    Command="{Binding ToggleSoundCommand}"
+                                    Padding="8,3" FontSize="10" Margin="0,0,6,0">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource ModeChipButton}">
                                         <Setter Property="Background" Value="#22FFFFFF"/>
+                                        <Setter Property="Foreground" Value="#8E8E93"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSoundEnabled}" Value="True">
+                                                <Setter Property="Background" Value="#2A0A84FF"/>
+                                                <Setter Property="Foreground" Value="#0A84FF"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+
+                            <!-- Автозапуск -->
+                            <Button Content="{Binding AutoStartStatusText}"
+                                    Command="{Binding ToggleAutoStartCommand}"
+                                    Padding="8,3" FontSize="10" Margin="0,0,6,0">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource ModeChipButton}">
+                                        <Setter Property="Background" Value="#22FFFFFF"/>
+                                        <Setter Property="Foreground" Value="#8E8E93"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsAutoStartEnabled}" Value="True">
-                                                <Setter Property="Background" Value="#3330D158"/>
+                                                <Setter Property="Background" Value="#2A30D158"/>
                                                 <Setter Property="Foreground" Value="#30D158"/>
                                             </DataTrigger>
                                         </Style.Triggers>
