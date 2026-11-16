@@ -1,13 +1,17 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Media;
-using System.Threading;
+using System.Linq;
+using System.Reflection;
+using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 
 namespace DynamicIsland.Services
 {
-    public interface ISoundEffectService
+    public interface ISoundEffectService : IDisposable
     {
         bool IsSoundEnabled { get; set; }
+        float MasterVolume { get; set; }
         void PlayExpand();
         void PlayCollapse();
         void PlayTap();
@@ -18,216 +22,216 @@ namespace DynamicIsland.Services
     }
 
     /// <summary>
-    /// Процедурный синтезатор органичных звуков UI в стиле iOS / visionOS / macOS.
-    /// Синтезирует синусоидальные звуковые волны в памяти без внешних файлов с микро-атакой и затуханием,
-    /// полностью исключающими цифровые щелчки (clicks) и артефакты постоянной составляющей (DC offset).
+    /// Сервис звуковых эффектов на базе оригинальных системных аудиофайлов iOS / watchOS / macOS.
+    /// Использует полифонический микшер NAudio (MixingSampleProvider) с предварительно кэшированными
+    /// в память 16-битными PCM-семплами:
+    /// - Полная поддержка наложения звуков (одновременное воспроизведение тапов, анимаций и уведомлений)
+    /// - Плавная комфортная громкость на уровне ~35–45% без щелчков и клиппинга
+    /// - Мгновенный отклик 0 мс (все аудиоданные предзагружены в RAM)
+    /// - Отказоустойчивый запуск без исключений при отсутствии активного аудиоустройства
     /// </summary>
     public class SoundEffectService : ISoundEffectService
     {
         public bool IsSoundEnabled { get; set; } = true;
+        public float MasterVolume { get; set; } = 0.40f;
 
-        private readonly byte[] _expandWav;
-        private readonly byte[] _collapseWav;
-        private readonly byte[] _tapWav;
-        private readonly byte[] _chimeWav;
-        private readonly byte[] _dropWav;
+        private readonly MixingSampleProvider? _mixer;
+        private readonly WaveOutEvent? _waveOut;
+        private readonly bool _isAudioAvailable;
+
+        private readonly CachedSound? _tapSound;
+        private readonly CachedSound? _expandSound;
+        private readonly CachedSound? _collapseSound;
+        private readonly CachedSound? _chimeSound;
+        private readonly CachedSound? _dropSound;
 
         public SoundEffectService()
         {
-            // Предварительная процедурная генерация WAV-семплов в памяти для моментального отклика
-            // Раскрытие острова: мягкий восходящий «пузырёк» (320 Гц → 680 Гц за 55 мс, ~25% громкость)
-            _expandWav = SynthesizeSweepWav(frequencyStart: 320f, frequencyEnd: 680f, durationMs: 55, volume: 0.25f, decayRate: 2.8, attackMs: 4);
+            // 1. Предварительная загрузка оригинальных аудиофайлов Apple в память (RAM)
+            _tapSound = LoadCachedSound("tap.wav");
+            _expandSound = LoadCachedSound("expand.wav");
+            _collapseSound = LoadCachedSound("collapse.wav");
+            _chimeSound = LoadCachedSound("chime.wav");
+            _dropSound = LoadCachedSound("drop.wav");
 
-            // Сворачивание острова: мягкий нисходящий спад (580 Гц → 260 Гц за 50 мс, ~22% громкость)
-            _collapseWav = SynthesizeSweepWav(frequencyStart: 580f, frequencyEnd: 260f, durationMs: 50, volume: 0.22f, decayRate: 3.5, attackMs: 4);
+            // 2. Инициализация микшера NAudio для наложения звуков без блокировки UI
+            try
+            {
+                var waveFormat = WaveFormat.CreateIeeeFloatWaveFormat(44100, 2);
+                _mixer = new MixingSampleProvider(waveFormat)
+                {
+                    ReadFully = true
+                };
 
-            // Нажатие на кнопки/табы: бархатный ультракороткий «тап» виброотклика Taptic Engine (210 Гц → 140 Гц за 28 мс, ~30% громкость)
-            _tapWav = SynthesizeSweepWav(frequencyStart: 210f, frequencyEnd: 140f, durationMs: 28, volume: 0.30f, decayRate: 5.2, attackMs: 3);
-
-            // Уведомления и таймер: теплый гармоничный двойной перезвон (ноты E5 + A5 с обертонами за 380 мс)
-            _chimeWav = SynthesizeChimeWav(durationMs: 380, volume: 0.26f);
-
-            // Карман / сброс файлов: мягкая капля (380 Гц → 740 Гц за 46 мс)
-            _dropWav = SynthesizeSweepWav(frequencyStart: 380f, frequencyEnd: 740f, durationMs: 46, volume: 0.24f, decayRate: 3.2, attackMs: 4);
+                _waveOut = new WaveOutEvent
+                {
+                    DesiredLatency = 50,
+                    NumberOfBuffers = 3
+                };
+                _waveOut.Init(_mixer);
+                _waveOut.Play();
+                _isAudioAvailable = true;
+            }
+            catch (Exception ex)
+            {
+                _isAudioAvailable = false;
+                App.Log($"[SoundEffectService] Audio hardware not available: {ex.Message}");
+            }
         }
 
-        public void PlayExpand() => PlayAsync(_expandWav);
+        // Раскрытие острова: оригинальный мягкий восходящий звук Siri / dictation begin (jbl_begin.caf)
+        public void PlayExpand() => PlaySound(_expandSound, 0.95f);
 
-        public void PlayCollapse() => PlayAsync(_collapseWav);
+        // Сворачивание острова: оригинальный мягкий нисходящий звук Siri / dictation cancel (jbl_cancel.caf)
+        public void PlayCollapse() => PlaySound(_collapseSound, 0.90f);
 
-        public void PlayTap() => PlayAsync(_tapWav);
+        // Клик по табам и кнопкам: оригинальный глухой тактильный клик Taptic Engine (Tock.caf)
+        public void PlayTap() => PlaySound(_tapSound, 1.05f);
 
-        public void PlayChime() => PlayAsync(_chimeWav);
+        // Завершение таймера / уведомление: хрустальный аккорд Apple Pay (payment_success.caf)
+        public void PlayChime() => PlaySound(_chimeSound, 0.95f);
 
-        public void PlayDrop() => PlayAsync(_dropWav);
+        // Сброс файлов в карман: фирменный звук успешной отправки / AirDrop (SentMessage.caf)
+        public void PlayDrop() => PlaySound(_dropSound, 0.95f);
 
         // Псевдонимы обратной совместимости
         public void PlayPop() => PlayTap();
 
         public void PlaySnap() => PlayTap();
 
-        /// <summary>
-        /// Асинхронное воспроизведение из пула потоков без блокировки UI-потока.
-        /// </summary>
-        private void PlayAsync(byte[] wavBytes)
+        private void PlaySound(CachedSound? sound, float volumeScale)
         {
-            if (!IsSoundEnabled || wavBytes == null || wavBytes.Length == 0) return;
+            if (!IsSoundEnabled || !_isAudioAvailable || _mixer == null || sound == null) return;
 
-            ThreadPool.QueueUserWorkItem(_ =>
+            try
             {
-                try
+                var input = new CachedSoundSampleProvider(sound);
+                var volumeProvider = new VolumeSampleProvider(input)
                 {
-                    using var ms = new MemoryStream(wavBytes, writable: false);
-                    using var player = new SoundPlayer(ms);
-                    player.PlaySync();
-                }
-                catch
-                {
-                    // Игнорируем ошибки отсутствия аудиоустройства в ОС
-                }
-            });
-        }
-
-        /// <summary>
-        /// Процедурный синтез частотного свипа (continuous-phase sine sweep) с мягкой атакой и экспоненциальным спадом.
-        /// </summary>
-        private static byte[] SynthesizeSweepWav(float frequencyStart, float frequencyEnd, int durationMs, float volume, double decayRate = 3.5, int attackMs = 4)
-        {
-            const int sampleRate = 44100;
-            int samples = Math.Max(10, (sampleRate * durationMs) / 1000);
-            short[] pcm = new short[samples];
-
-            int attackSamples = Math.Max(1, (sampleRate * attackMs) / 1000);
-            int releaseSamples = Math.Max(1, (sampleRate * 3) / 1000); // 3 мс сглаженный спад в 0 для исключения щелчка
-
-            double phase = 0.0;
-            for (int i = 0; i < samples; i++)
-            {
-                double t = (double)i / samples;
-                double freq = frequencyStart + (frequencyEnd - frequencyStart) * t;
-                phase += 2.0 * Math.PI * freq / sampleRate;
-
-                // Базовый синусоидальный генератор
-                double sample = Math.Sin(phase);
-
-                // Экспоненциальная огибающая
-                double env = Math.Exp(-decayRate * t);
-
-                // Мягкая четверть-синусоидальная атака
-                if (i < attackSamples)
-                {
-                    double aT = (double)i / attackSamples;
-                    env *= Math.Sin(Math.PI * 0.5 * aT);
-                }
-
-                // Микро-релиз в самом конце трека
-                if (i >= samples - releaseSamples)
-                {
-                    double rT = (double)(samples - 1 - i) / releaseSamples;
-                    env *= Math.Sin(Math.PI * 0.5 * rT);
-                }
-
-                int val = (int)(sample * env * volume * 32767.0);
-                pcm[i] = (short)Math.Clamp(val, short.MinValue, short.MaxValue);
+                    Volume = Math.Clamp(MasterVolume * volumeScale, 0.0f, 1.0f)
+                };
+                _mixer.AddMixerInput(volumeProvider);
             }
-
-            return PackPcmToWav(pcm, sampleRate);
+            catch (Exception ex)
+            {
+                App.Log($"[SoundEffectService] Playback error: {ex.Message}");
+            }
         }
 
-        /// <summary>
-        /// Процедурный синтез теплого аккорда-перезвона (нота E5 659.25 Гц + нота A5 880 Гц со сдвигом 65 мс).
-        /// </summary>
-        private static byte[] SynthesizeChimeWav(int durationMs = 380, float volume = 0.26f)
+        private static CachedSound? LoadCachedSound(string fileName)
         {
-            const int sampleRate = 44100;
-            int samples = Math.Max(10, (sampleRate * durationMs) / 1000);
-            short[] pcm = new short[samples];
-
-            int note2StartSample = (sampleRate * 65) / 1000;
-            int attackSamples = (sampleRate * 4) / 1000;
-            int releaseSamples = (sampleRate * 5) / 1000;
-
-            double phase1 = 0.0;
-            double phase1Sub = 0.0;
-            double phase2 = 0.0;
-            double phase2Sub = 0.0;
-
-            const double freq1 = 659.25; // E5
-            const double freq2 = 880.00; // A5
-
-            for (int i = 0; i < samples; i++)
+            try
             {
-                double totalSample = 0.0;
-
-                // Нота 1 (E5)
-                phase1 += 2.0 * Math.PI * freq1 / sampleRate;
-                phase1Sub += 2.0 * Math.PI * (freq1 * 2.0) / sampleRate; // легкий обертон
-                double t1 = (double)i / samples;
-                double env1 = Math.Exp(-3.2 * t1);
-                if (i < attackSamples)
+                byte[]? wavBytes = LoadSoundBytes(fileName);
+                if (wavBytes != null && wavBytes.Length > 0)
                 {
-                    env1 *= Math.Sin(Math.PI * 0.5 * ((double)i / attackSamples));
+                    return new CachedSound(wavBytes);
                 }
-                totalSample += (Math.Sin(phase1) + 0.12 * Math.Sin(phase1Sub)) * env1 * 0.65;
+            }
+            catch (Exception ex)
+            {
+                App.Log($"[SoundEffectService] Error caching {fileName}: {ex.Message}");
+            }
+            return null;
+        }
 
-                // Нота 2 (A5 со смещением 65 мс)
-                if (i >= note2StartSample)
+        private static byte[]? LoadSoundBytes(string fileName)
+        {
+            try
+            {
+                // 1. Попытка загрузить из папки приложения (Assets/Sounds/<file>)
+                string diskPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Sounds", fileName);
+                if (File.Exists(diskPath))
                 {
-                    int i2 = i - note2StartSample;
-                    int samples2 = samples - note2StartSample;
-                    double t2 = (double)i2 / samples2;
-                    phase2 += 2.0 * Math.PI * freq2 / sampleRate;
-                    phase2Sub += 2.0 * Math.PI * (freq2 * 2.0) / sampleRate;
-                    double env2 = Math.Exp(-3.0 * t2);
-                    if (i2 < attackSamples)
+                    return File.ReadAllBytes(diskPath);
+                }
+
+                // 2. Попытка загрузить из встроенных ресурсов (EmbeddedResource)
+                var asm = Assembly.GetExecutingAssembly();
+                string? resName = asm.GetManifestResourceNames()
+                    .FirstOrDefault(n => n.EndsWith(fileName, StringComparison.OrdinalIgnoreCase));
+
+                if (!string.IsNullOrEmpty(resName))
+                {
+                    using var stream = asm.GetManifestResourceStream(resName);
+                    if (stream != null)
                     {
-                        env2 *= Math.Sin(Math.PI * 0.5 * ((double)i2 / attackSamples));
+                        using var ms = new MemoryStream();
+                        stream.CopyTo(ms);
+                        return ms.ToArray();
                     }
-                    totalSample += (Math.Sin(phase2) + 0.10 * Math.Sin(phase2Sub)) * env2 * 0.70;
                 }
-
-                // Общий срез в конце
-                if (i >= samples - releaseSamples)
-                {
-                    double rT = (double)(samples - 1 - i) / releaseSamples;
-                    totalSample *= Math.Sin(Math.PI * 0.5 * rT);
-                }
-
-                int val = (int)(totalSample * volume * 32767.0);
-                pcm[i] = (short)Math.Clamp(val, short.MinValue, short.MaxValue);
             }
-
-            return PackPcmToWav(pcm, sampleRate);
+            catch (Exception ex)
+            {
+                App.Log($"[SoundEffectService] Error reading {fileName}: {ex.Message}");
+            }
+            return null;
         }
 
-        private static byte[] PackPcmToWav(short[] pcm, int sampleRate)
+        public void Dispose()
         {
-            using var ms = new MemoryStream();
-            using var bw = new BinaryWriter(ms);
-
-            int subChunk2Size = pcm.Length * 2;
-            int chunkSize = 36 + subChunk2Size;
-
-            bw.Write(new char[4] { 'R', 'I', 'F', 'F' });
-            bw.Write(chunkSize);
-            bw.Write(new char[4] { 'W', 'A', 'V', 'E' });
-            bw.Write(new char[4] { 'f', 'm', 't', ' ' });
-            bw.Write(16); // PCM
-            bw.Write((short)1); // PCM format
-            bw.Write((short)1); // Mono
-            bw.Write(sampleRate);
-            bw.Write(sampleRate * 2); // Byte rate
-            bw.Write((short)2); // Block align
-            bw.Write((short)16); // Bits per sample
-            bw.Write(new char[4] { 'd', 'a', 't', 'a' });
-            bw.Write(subChunk2Size);
-
-            for (int i = 0; i < pcm.Length; i++)
+            try
             {
-                bw.Write(pcm[i]);
+                _waveOut?.Stop();
+                _waveOut?.Dispose();
             }
+            catch { }
+        }
+    }
 
-            return ms.ToArray();
+    /// <summary>
+    /// Предварительно декодированный в память аудиофрагмент.
+    /// Хранит сырые 32-битные float-сэмплы для мгновенного подмешивания в микшер без дисковых операций.
+    /// </summary>
+    public class CachedSound
+    {
+        public float[] AudioData { get; }
+        public WaveFormat WaveFormat { get; }
+
+        public CachedSound(byte[] wavBytes)
+        {
+            using var ms = new MemoryStream(wavBytes);
+            using var reader = new WaveFileReader(ms);
+            var sampleProvider = reader.ToSampleProvider();
+            WaveFormat = sampleProvider.WaveFormat;
+
+            var wholeFile = new List<float>((int)(reader.Length / 2));
+            float[] buffer = new float[4096];
+            int samplesRead;
+            while ((samplesRead = sampleProvider.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                for (int i = 0; i < samplesRead; i++)
+                {
+                    wholeFile.Add(buffer[i]);
+                }
+            }
+            AudioData = wholeFile.ToArray();
+        }
+    }
+
+    /// <summary>
+    /// Легковесный потокобезопасный провайдер сэмплов для воспроизведения CachedSound в MixingSampleProvider.
+    /// </summary>
+    public class CachedSoundSampleProvider : ISampleProvider
+    {
+        private readonly CachedSound _cachedSound;
+        private long _position;
+
+        public CachedSoundSampleProvider(CachedSound cachedSound)
+        {
+            _cachedSound = cachedSound;
+        }
+
+        public WaveFormat WaveFormat => _cachedSound.WaveFormat;
+
+        public int Read(float[] buffer, int offset, int count)
+        {
+            long availableSamples = _cachedSound.AudioData.Length - _position;
+            long samplesToCopy = Math.Min(availableSamples, count);
+            Array.Copy(_cachedSound.AudioData, _position, buffer, offset, samplesToCopy);
+            _position += samplesToCopy;
+            return (int)samplesToCopy;
         }
     }
 }

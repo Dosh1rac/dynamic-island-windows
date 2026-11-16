@@ -1351,6 +1351,7 @@ namespace DynamicIsland.ViewModels
             _timerService.Dispose();
             _weatherService.Dispose();
             _voiceService.Dispose();
+            _soundEffectService.Dispose();
             _hudDismissTimer.Stop();
             _playbackTimer.Stop();
         }
