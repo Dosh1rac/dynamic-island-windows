@@ -79,7 +79,6 @@ namespace DynamicIsland.Views
 
             NativeMethods.SetToolWindowAndTopmost(_hwnd);
             NativeMethods.RegisterHotKey(_hwnd, HOTKEY_ID, NativeMethods.MOD_CONTROL | NativeMethods.MOD_SHIFT, NativeMethods.VK_I);
-            NativeMethods.EnableAcrylic(_hwnd, 0x750E0C0C);
 
             _clipboardService.Initialize(_hwnd);
 

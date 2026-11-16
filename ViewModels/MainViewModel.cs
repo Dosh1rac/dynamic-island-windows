@@ -1199,22 +1199,36 @@ namespace DynamicIsland.ViewModels
 
             switch (theme)
             {
+                case IslandTheme.Dark:
+                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromRgb(0x0C, 0x0C, 0x0E));
+                    CapsuleBorderBrush = new SolidColorBrush(Color.FromArgb(0x28, 0xFF, 0xFF, 0xFF));
+                    CapsuleBorderThickness = new Thickness(1.0);
+                    ThemeForegroundBrush = new SolidColorBrush(Color.FromRgb(0xF4, 0xF4, 0xF5));
+                    ThemeSecondaryForegroundBrush = new SolidColorBrush(Color.FromRgb(0xA1, 0xA1, 0xAA));
+                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromRgb(0x18, 0x18, 0x1B));
+                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromRgb(0x18, 0x18, 0x1B));
+                    ThemeBorderBrush = new SolidColorBrush(Color.FromRgb(0x27, 0x27, 0x2A));
+                    IsDarkTheme = true;
+                    ThemeDisplayShortName = "🌑 Тёмная";
+                    ThemeDisplayName = "Тёмная (OLED)";
+                    break;
+
                 case IslandTheme.Light:
-                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromArgb(0xC0, 0xF4, 0xF4, 0xF6));
+                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromRgb(0xF4, 0xF4, 0xF6));
                     CapsuleBorderBrush = new SolidColorBrush(Color.FromArgb(0x35, 0x00, 0x00, 0x00));
                     CapsuleBorderThickness = new Thickness(1.0);
                     ThemeForegroundBrush = new SolidColorBrush(Color.FromRgb(0x18, 0x18, 0x1B));
                     ThemeSecondaryForegroundBrush = new SolidColorBrush(Color.FromRgb(0x71, 0x71, 0x7A));
-                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromArgb(0x20, 0x00, 0x00, 0x00));
-                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromArgb(0x15, 0x00, 0x00, 0x00));
-                    ThemeBorderBrush = new SolidColorBrush(Color.FromArgb(0x25, 0x00, 0x00, 0x00));
+                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromRgb(0xE4, 0xE4, 0xE7));
+                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromRgb(0xE4, 0xE4, 0xE7));
+                    ThemeBorderBrush = new SolidColorBrush(Color.FromRgb(0xD4, 0xD4, 0xD8));
                     IsDarkTheme = false;
                     ThemeDisplayShortName = "☀️ Светлая";
                     ThemeDisplayName = "Светлая (Керамика)";
                     break;
 
                 case IslandTheme.LiquidGlassLight:
-                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromArgb(0x75, 0xEE, 0xF2, 0xF8));
+                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromArgb(0xD8, 0xEE, 0xF2, 0xF8));
                     CapsuleBorderBrush = liquidGlassRim;
                     CapsuleBorderThickness = new Thickness(1.0);
                     ThemeForegroundBrush = new SolidColorBrush(Color.FromRgb(0x18, 0x18, 0x1B));
@@ -1227,12 +1241,10 @@ namespace DynamicIsland.ViewModels
                     ThemeDisplayName = "Жидкое стекло (Светлое)";
                     break;
 
-                case IslandTheme.Dark:
                 case IslandTheme.LiquidGlassDark:
                 default:
-                    // Apple Liquid Glass (iOS 26 / visionOS)
-                    // Полупрозрачный глубокий фон #750C0C0E под которым работает Acrylic blur
-                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromArgb(0x75, 0x0C, 0x0C, 0x0E));
+                    // Apple Liquid Glass (iOS 26 / visionOS): глубокое полупрозрачное обсидиановое стекло
+                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromArgb(0xF0, 0x0C, 0x0C, 0x0E));
                     CapsuleBorderBrush = liquidGlassRim; // Внешний 1px контур с ярким диагональным бликом
                     CapsuleBorderThickness = new Thickness(1.0);
                     // Внутренние карточки и кнопки: полупрозрачное стекло (#14FFFFFF) с тонким верхним бликом
