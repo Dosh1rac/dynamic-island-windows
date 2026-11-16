@@ -151,5 +151,87 @@ namespace DynamicIsland.Helpers
             }
             SetWindowLongPtr(hWnd, GWL_EXSTYLE, new IntPtr(style));
         }
+
+        // ================= WINDOWS 11 DWM ACRYLIC / BLUR =================
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct AccentPolicy
+        {
+            public AccentState AccentState;
+            public int AccentFlags;
+            public int GradientColor;
+            public int AnimationId;
+        }
+
+        public enum AccentState
+        {
+            ACCENT_DISABLED = 0,
+            ACCENT_ENABLE_GRADIENT = 1,
+            ACCENT_ENABLE_TRANSPARENTGRADIENT = 2,
+            ACCENT_ENABLE_BLURBEHIND = 3,
+            ACCENT_ENABLE_ACRYLICBLURBEHIND = 4,
+            ACCENT_ENABLE_HOSTBACKDROP = 5
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct WindowCompositionAttributeData
+        {
+            public WindowCompositionAttribute Attribute;
+            public IntPtr Data;
+            public int SizeOfData;
+        }
+
+        public enum WindowCompositionAttribute
+        {
+            WCA_ACCENT_POLICY = 19
+        }
+
+        [DllImport("user32.dll")]
+        public static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
+
+        [DllImport("dwmapi.dll")]
+        public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+        public const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+        public const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
+
+        public static void EnableAcrylic(IntPtr hWnd, uint gradientColor = 0x750E0C0C)
+        {
+            try
+            {
+                int darkMode = 1;
+                DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkMode, sizeof(int));
+
+                int backdropType = 3; // DWMSBT_TRANSIENTWINDOW (Acrylic)
+                DwmSetWindowAttribute(hWnd, DWMWA_SYSTEMBACKDROP_TYPE, ref backdropType, sizeof(int));
+            }
+            catch { }
+
+            try
+            {
+                var policy = new AccentPolicy
+                {
+                    AccentState = AccentState.ACCENT_ENABLE_ACRYLICBLURBEHIND,
+                    AccentFlags = 2,
+                    GradientColor = (int)gradientColor,
+                    AnimationId = 0
+                };
+
+                int size = Marshal.SizeOf(policy);
+                IntPtr pPolicy = Marshal.AllocHGlobal(size);
+                Marshal.StructureToPtr(policy, pPolicy, false);
+
+                var data = new WindowCompositionAttributeData
+                {
+                    Attribute = WindowCompositionAttribute.WCA_ACCENT_POLICY,
+                    Data = pPolicy,
+                    SizeOfData = size
+                };
+
+                SetWindowCompositionAttribute(hWnd, ref data);
+                Marshal.FreeHGlobal(pPolicy);
+            }
+            catch { }
+        }
     }
 }

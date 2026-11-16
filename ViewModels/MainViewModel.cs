@@ -1174,41 +1174,50 @@ namespace DynamicIsland.ViewModels
             CurrentTheme = theme;
             EnableLiquidWaves = enableWaves;
 
-            // 1px Rim Light (тонкий контур от 20% белого сверху до 5% белого снизу)
-            var rimLight = new LinearGradientBrush
+            // Apple Liquid Glass 1px Rim Light (яркий диагональный блик: 0x70FFFFFF сверху слева -> 0x10FFFFFF в центре -> 0x35FFFFFF снизу справа)
+            var liquidGlassRim = new LinearGradientBrush
+            {
+                StartPoint = new System.Windows.Point(0, 0),
+                EndPoint = new System.Windows.Point(1, 1)
+            };
+            liquidGlassRim.GradientStops.Add(new GradientStop(Color.FromArgb(0x70, 0xFF, 0xFF, 0xFF), 0.0));
+            liquidGlassRim.GradientStops.Add(new GradientStop(Color.FromArgb(0x10, 0xFF, 0xFF, 0xFF), 0.5));
+            liquidGlassRim.GradientStops.Add(new GradientStop(Color.FromArgb(0x35, 0xFF, 0xFF, 0xFF), 1.0));
+
+            // Тонкий верхний блик для внутренних карточек стекла (#30FFFFFF сверху -> #10FFFFFF снизу)
+            var glassCardBorder = new LinearGradientBrush
             {
                 StartPoint = new System.Windows.Point(0, 0),
                 EndPoint = new System.Windows.Point(0, 1)
             };
-            rimLight.GradientStops.Add(new GradientStop(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF), 0.0));
-            rimLight.GradientStops.Add(new GradientStop(Color.FromArgb(0x18, 0xFF, 0xFF, 0xFF), 0.5));
-            rimLight.GradientStops.Add(new GradientStop(Color.FromArgb(0x0D, 0xFF, 0xFF, 0xFF), 1.0));
+            glassCardBorder.GradientStops.Add(new GradientStop(Color.FromArgb(0x30, 0xFF, 0xFF, 0xFF), 0.0));
+            glassCardBorder.GradientStops.Add(new GradientStop(Color.FromArgb(0x10, 0xFF, 0xFF, 0xFF), 1.0));
 
             switch (theme)
             {
                 case IslandTheme.Light:
-                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromArgb(0xF4, 0xF4, 0xF4, 0xF6));
-                    CapsuleBorderBrush = new SolidColorBrush(Color.FromArgb(0x25, 0x00, 0x00, 0x00));
+                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromArgb(0xC0, 0xF4, 0xF4, 0xF6));
+                    CapsuleBorderBrush = new SolidColorBrush(Color.FromArgb(0x35, 0x00, 0x00, 0x00));
                     CapsuleBorderThickness = new Thickness(1.0);
                     ThemeForegroundBrush = new SolidColorBrush(Color.FromRgb(0x18, 0x18, 0x1B));
                     ThemeSecondaryForegroundBrush = new SolidColorBrush(Color.FromRgb(0x71, 0x71, 0x7A));
-                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromRgb(0xE4, 0xE4, 0xE7));
-                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromRgb(0xE4, 0xE4, 0xE7));
-                    ThemeBorderBrush = new SolidColorBrush(Color.FromRgb(0xD4, 0xD4, 0xD8));
+                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromArgb(0x20, 0x00, 0x00, 0x00));
+                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromArgb(0x15, 0x00, 0x00, 0x00));
+                    ThemeBorderBrush = new SolidColorBrush(Color.FromArgb(0x25, 0x00, 0x00, 0x00));
                     IsDarkTheme = false;
                     ThemeDisplayShortName = "☀️ Светлая";
-                    ThemeDisplayName = "Светлая (#F4F4F6)";
+                    ThemeDisplayName = "Светлая (Керамика)";
                     break;
 
                 case IslandTheme.LiquidGlassLight:
-                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromArgb(0xE0, 0xEE, 0xF2, 0xF8));
-                    CapsuleBorderBrush = rimLight;
+                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromArgb(0x75, 0xEE, 0xF2, 0xF8));
+                    CapsuleBorderBrush = liquidGlassRim;
                     CapsuleBorderThickness = new Thickness(1.0);
                     ThemeForegroundBrush = new SolidColorBrush(Color.FromRgb(0x18, 0x18, 0x1B));
                     ThemeSecondaryForegroundBrush = new SolidColorBrush(Color.FromRgb(0x71, 0x71, 0x7A));
-                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromArgb(0x60, 0xFF, 0xFF, 0xFF));
-                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromArgb(0x45, 0xFF, 0xFF, 0xFF));
-                    ThemeBorderBrush = new SolidColorBrush(Color.FromArgb(0x30, 0x90, 0xB0, 0xD0));
+                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromArgb(0x20, 0xFF, 0xFF, 0xFF));
+                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromArgb(0x18, 0xFF, 0xFF, 0xFF));
+                    ThemeBorderBrush = glassCardBorder;
                     IsDarkTheme = false;
                     ThemeDisplayShortName = "🌊 Стекло (Свет)";
                     ThemeDisplayName = "Жидкое стекло (Светлое)";
@@ -1217,19 +1226,20 @@ namespace DynamicIsland.ViewModels
                 case IslandTheme.Dark:
                 case IslandTheme.LiquidGlassDark:
                 default:
-                    // Основной фон острова: #0D0D0F (почти черный с легким холодным подтоном, Opacity ~ 0.94)
-                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromArgb(0xF0, 0x0D, 0x0D, 0x0F));
-                    CapsuleBorderBrush = rimLight; // 1px Rim Light
+                    // Apple Liquid Glass (iOS 26 / visionOS)
+                    // Полупрозрачный глубокий фон #750C0C0E под которым работает Acrylic blur
+                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromArgb(0x75, 0x0C, 0x0C, 0x0E));
+                    CapsuleBorderBrush = liquidGlassRim; // Внешний 1px контур с ярким диагональным бликом
                     CapsuleBorderThickness = new Thickness(1.0);
-                    // Основной текст: #F4F4F5, Вторичный текст: #A1A1AA, Карточки: #18181B, Контур: #27272A
+                    // Внутренние карточки и кнопки: полупрозрачное стекло (#14FFFFFF) с тонким верхним бликом
                     ThemeForegroundBrush = new SolidColorBrush(Color.FromRgb(0xF4, 0xF4, 0xF5));
                     ThemeSecondaryForegroundBrush = new SolidColorBrush(Color.FromRgb(0xA1, 0xA1, 0xAA));
-                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromRgb(0x18, 0x18, 0x1B));
-                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromRgb(0x18, 0x18, 0x1B));
-                    ThemeBorderBrush = new SolidColorBrush(Color.FromRgb(0x27, 0x27, 0x2A));
+                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF));
+                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF));
+                    ThemeBorderBrush = glassCardBorder;
                     IsDarkTheme = true;
-                    ThemeDisplayShortName = "🌑 Тёмная";
-                    ThemeDisplayName = "Премиум Тёмная (#0D0D0F)";
+                    ThemeDisplayShortName = "💎 Liquid Glass";
+                    ThemeDisplayName = "Apple Liquid Glass (visionOS)";
                     break;
             }
 

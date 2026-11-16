@@ -79,6 +79,7 @@ namespace DynamicIsland.Views
 
             NativeMethods.SetToolWindowAndTopmost(_hwnd);
             NativeMethods.RegisterHotKey(_hwnd, HOTKEY_ID, NativeMethods.MOD_CONTROL | NativeMethods.MOD_SHIFT, NativeMethods.VK_I);
+            NativeMethods.EnableAcrylic(_hwnd, 0x750E0C0C);
 
             _clipboardService.Initialize(_hwnd);
 
@@ -366,6 +367,53 @@ namespace DynamicIsland.Views
 
         // ================= ЖЕСТЫ И СВАЙПЫ =================
 
+        private void IslandCapsule_MouseEnter(object sender, MouseEventArgs e)
+        {
+            if (InteractiveRimGlare != null)
+            {
+                var fadeIn = new DoubleAnimation
+                {
+                    To = 0.85,
+                    Duration = TimeSpan.FromMilliseconds(160),
+                    EasingFunction = new SineEase { EasingMode = EasingMode.EaseOut }
+                };
+                InteractiveRimGlare.BeginAnimation(OpacityProperty, fadeIn);
+            }
+        }
+
+        private void IslandCapsule_MouseLeave(object sender, MouseEventArgs e)
+        {
+            if (InteractiveRimGlare != null)
+            {
+                var fadeOut = new DoubleAnimation
+                {
+                    To = 0.0,
+                    Duration = TimeSpan.FromMilliseconds(280),
+                    EasingFunction = new SineEase { EasingMode = EasingMode.EaseOut }
+                };
+                InteractiveRimGlare.BeginAnimation(OpacityProperty, fadeOut);
+            }
+        }
+
+        private void UpdateInteractiveGlare(double mouseX)
+        {
+            if (InteractiveRimGlare != null && InteractiveGlareTranslate != null)
+            {
+                double glareWidth = InteractiveRimGlare.Width;
+                double targetX = mouseX - (glareWidth / 2.0);
+                double maxX = _viewModel.IslandWidth - glareWidth;
+                targetX = Math.Clamp(targetX, 0, Math.Max(0, maxX));
+
+                var anim = new DoubleAnimation
+                {
+                    To = targetX,
+                    Duration = TimeSpan.FromMilliseconds(40),
+                    EasingFunction = new SineEase { EasingMode = EasingMode.EaseOut }
+                };
+                InteractiveGlareTranslate.BeginAnimation(TranslateTransform.XProperty, anim);
+            }
+        }
+
         private void IslandCapsule_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             _dragStartPoint = e.GetPosition(this);
@@ -375,6 +423,9 @@ namespace DynamicIsland.Views
 
         private void IslandCapsule_MouseMove(object sender, MouseEventArgs e)
         {
+            Point capsulePoint = e.GetPosition(IslandCapsule);
+            UpdateInteractiveGlare(capsulePoint.X);
+
             if (!_isDragging || e.LeftButton != MouseButtonState.Pressed)
                 return;
 
