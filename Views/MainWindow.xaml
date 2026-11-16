@@ -258,11 +258,6 @@
                 MouseLeftButtonUp="IslandCapsule_MouseLeftButtonUp"
                 MouseWheel="IslandCapsule_MouseWheel">
 
-            <!-- Мягкая глубокая внешняя тень острова (парит над окнами) -->
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="35" Opacity="0.60" Color="#000000" Direction="270" ShadowDepth="6" RenderingBias="Performance"/>
-            </Border.Effect>
-
             <Border.RenderTransform>
                 <TransformGroup>
                     <ScaleTransform x:Name="CapsuleScale" ScaleX="1.0" ScaleY="1.0"/>
