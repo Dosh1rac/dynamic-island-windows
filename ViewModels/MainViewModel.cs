@@ -1153,22 +1153,33 @@ namespace DynamicIsland.ViewModels
                     break;
 
                 case IslandTheme.LiquidGlassLight:
-                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromArgb(0xB8, 0xF0, 0xF4, 0xFA));
+                    // Прозрачный морозный кристалл / чистое светлое жидкое стекло как на фото
+                    var lightGlassBg = new LinearGradientBrush
+                    {
+                        StartPoint = new System.Windows.Point(0, 0),
+                        EndPoint = new System.Windows.Point(0, 1)
+                    };
+                    lightGlassBg.GradientStops.Add(new GradientStop(Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF), 0.0));
+                    lightGlassBg.GradientStops.Add(new GradientStop(Color.FromArgb(0x22, 0xEB, 0xF4, 0xFC), 0.45));
+                    lightGlassBg.GradientStops.Add(new GradientStop(Color.FromArgb(0x35, 0xFF, 0xFF, 0xFF), 1.0));
+                    CapsuleBackgroundBrush = lightGlassBg;
+
                     var lightGlassGrad = new LinearGradientBrush
                     {
                         StartPoint = new System.Windows.Point(0, 0),
                         EndPoint = new System.Windows.Point(0, 1)
                     };
-                    lightGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0xF0, 0xFF, 0xFF, 0xFF), 0.0));
-                    lightGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x70, 0x90, 0xB0, 0xC8), 0.5));
-                    lightGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x45, 0xFF, 0xFF, 0xFF), 1.0));
+                    lightGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0xF8, 0xFF, 0xFF, 0xFF), 0.0));
+                    lightGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x80, 0x90, 0xB5, 0xD0), 0.35));
+                    lightGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF), 0.7));
+                    lightGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x75, 0xFF, 0xFF, 0xFF), 1.0));
                     CapsuleBorderBrush = lightGlassGrad;
-                    CapsuleBorderThickness = new Thickness(1.2);
+                    CapsuleBorderThickness = new Thickness(1.5);
                     ThemeForegroundBrush = new SolidColorBrush(Color.FromRgb(0x1C, 0x1C, 0x1E));
-                    ThemeSecondaryForegroundBrush = new SolidColorBrush(Color.FromRgb(0x55, 0x55, 0x58));
-                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromArgb(0x60, 0xFF, 0xFF, 0xFF));
-                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromArgb(0x35, 0xFF, 0xFF, 0xFF));
-                    ThemeBorderBrush = new SolidColorBrush(Color.FromArgb(0x35, 0x80, 0x98, 0xB0));
+                    ThemeSecondaryForegroundBrush = new SolidColorBrush(Color.FromRgb(0x50, 0x50, 0x55));
+                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromArgb(0x38, 0xFF, 0xFF, 0xFF));
+                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromArgb(0x28, 0xFF, 0xFF, 0xFF));
+                    ThemeBorderBrush = new SolidColorBrush(Color.FromArgb(0x40, 0x90, 0xB0, 0xC8));
                     IsDarkTheme = false;
                     ThemeDisplayShortName = "🌊 Стекло (Свет)";
                     ThemeDisplayName = "Жидкое стекло (Светлое)";
@@ -1176,22 +1187,33 @@ namespace DynamicIsland.ViewModels
 
                 case IslandTheme.LiquidGlassDark:
                 default:
-                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromArgb(0xCC, 0x0A, 0x0B, 0x12));
+                    // Настоящее прозрачное жидкое стекло как на фото (85% прозрачности фона, призматические блики)
+                    var darkGlassBg = new LinearGradientBrush
+                    {
+                        StartPoint = new System.Windows.Point(0, 0),
+                        EndPoint = new System.Windows.Point(0, 1)
+                    };
+                    darkGlassBg.GradientStops.Add(new GradientStop(Color.FromArgb(0x32, 0x14, 0x22, 0x36), 0.0));
+                    darkGlassBg.GradientStops.Add(new GradientStop(Color.FromArgb(0x18, 0x08, 0x0F, 0x1C), 0.45));
+                    darkGlassBg.GradientStops.Add(new GradientStop(Color.FromArgb(0x2D, 0x10, 0x1C, 0x30), 1.0));
+                    CapsuleBackgroundBrush = darkGlassBg;
+
                     var darkGlassGrad = new LinearGradientBrush
                     {
                         StartPoint = new System.Windows.Point(0, 0),
                         EndPoint = new System.Windows.Point(0, 1)
                     };
-                    darkGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x95, 0xFF, 0xFF, 0xFF), 0.0));
-                    darkGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x35, 0x00, 0xE5, 0xFF), 0.35));
-                    darkGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x20, 0xFF, 0xFF, 0xFF), 1.0));
+                    darkGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0xFA, 0xFF, 0xFF, 0xFF), 0.0));
+                    darkGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x95, 0x00, 0xE5, 0xFF), 0.25));
+                    darkGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x45, 0xFF, 0xFF, 0xFF), 0.65));
+                    darkGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x75, 0xFF, 0xFF, 0xFF), 1.0));
                     CapsuleBorderBrush = darkGlassGrad;
-                    CapsuleBorderThickness = new Thickness(1.2);
+                    CapsuleBorderThickness = new Thickness(1.5);
                     ThemeForegroundBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0xFF, 0xFF));
-                    ThemeSecondaryForegroundBrush = new SolidColorBrush(Color.FromRgb(0x9E, 0x9E, 0xA5));
-                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromArgb(0x2E, 0xFF, 0xFF, 0xFF));
-                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromArgb(0x25, 0x00, 0x00, 0x00));
-                    ThemeBorderBrush = new SolidColorBrush(Color.FromArgb(0x28, 0xFF, 0xFF, 0xFF));
+                    ThemeSecondaryForegroundBrush = new SolidColorBrush(Color.FromRgb(0xBB, 0xBB, 0xC2));
+                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromArgb(0x2D, 0xFF, 0xFF, 0xFF));
+                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromArgb(0x22, 0x00, 0x0A, 0x18));
+                    ThemeBorderBrush = new SolidColorBrush(Color.FromArgb(0x35, 0xFF, 0xFF, 0xFF));
                     IsDarkTheme = true;
                     ThemeDisplayShortName = "💎 Стекло (Тьма)";
                     ThemeDisplayName = "Жидкое стекло (Тёмное)";

@@ -130,24 +130,25 @@
 
         <!-- Стиль иконок запуска в Доке -->
         <Style x:Key="DockAppButton" TargetType="Button">
-            <Setter Property="Background" Value="#1C1C1E"/>
+            <Setter Property="Background" Value="#25FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#30FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Width" Value="48"/>
             <Setter Property="Height" Value="48"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="appBorder" Background="{TemplateBinding Background}" CornerRadius="12">
+                        <Border x:Name="appBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="12">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="appBorder" Property="Background" Value="#2C2C2E"/>
+                                <Setter TargetName="appBorder" Property="Background" Value="#45FFFFFF"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="appBorder" Property="Background" Value="#3A3A3C"/>
+                                <Setter TargetName="appBorder" Property="Background" Value="#65FFFFFF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -184,22 +185,47 @@
             </Border.RenderTransform>
 
             <Grid>
-                <!-- ================= СЛОЙ ЖИДКИХ ВОЛН И ПРЕЛОМЛЕНИЯ ================= -->
+                <!-- ================= СЛОЙ ОПТИЧЕСКОГО ЖИДКОГО СТЕКЛА И ПРЕЛОМЛЕНИЯ ================= -->
                 <Grid IsHitTestVisible="False" ClipToBounds="True">
-                    <!-- Верхнее оптическое преломление линзы (Lens Meniscus) -->
-                    <Border VerticalAlignment="Top" Height="14" Opacity="0.55"
+                    <!-- 1. Внутренняя фаска полного преломления (TIR Shadow Rim - оптическая глубина стекла) -->
+                    <Border Margin="1.5"
+                            CornerRadius="{Binding CapsuleCornerRadius, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource CornerRadiusConverter}}"
+                            BorderThickness="2.5" Opacity="0.55">
+                        <Border.BorderBrush>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#55000000" Offset="0.0"/>
+                                <GradientStop Color="#25001020" Offset="0.45"/>
+                                <GradientStop Color="#60000000" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Border.BorderBrush>
+                    </Border>
+
+                    <!-- 2. Выпуклая оптическая линза / Блик мениска (Curved Lens Glare Meniscus) -->
+                    <Border VerticalAlignment="Top" Height="32" Opacity="0.45" Margin="2,1,2,0"
                             CornerRadius="{Binding CapsuleCornerRadius, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource CornerRadiusConverter}}">
                         <Border.Background>
                             <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                <GradientStop Color="#90FFFFFF" Offset="0.0"/>
+                                <GradientStop Color="#30FFFFFF" Offset="0.35"/>
+                                <GradientStop Color="#00FFFFFF" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+
+                    <!-- 3. Нижний отражённый рефлекс капли воды (Bottom Caustic Bounce) -->
+                    <Border VerticalAlignment="Bottom" Height="8" Opacity="0.40" Margin="3,0,3,1.5"
+                            CornerRadius="{Binding CapsuleCornerRadius, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource CornerRadiusConverter}}">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0.5,1" EndPoint="0.5,0">
                                 <GradientStop Color="#65FFFFFF" Offset="0.0"/>
                                 <GradientStop Color="#00FFFFFF" Offset="1.0"/>
                             </LinearGradientBrush>
                         </Border.Background>
                     </Border>
 
-                    <!-- Бегущая жидкая рябь / каустическая световая волна -->
+                    <!-- 4. Бегущая каустическая рябь воды / световая волна с призматической радугой -->
                     <Rectangle x:Name="WaveShimmerRect" Width="950" Height="550" HorizontalAlignment="Left" VerticalAlignment="Top"
-                               Opacity="0.45" RenderTransformOrigin="0.5,0.5"
+                               Opacity="0.50" RenderTransformOrigin="0.5,0.5"
                                Visibility="{Binding EnableLiquidWaves, Converter={StaticResource BoolToVisConverter}}">
                         <Rectangle.RenderTransform>
                             <TransformGroup>
@@ -210,11 +236,11 @@
                         <Rectangle.Fill>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                 <GradientStop Color="#00000000" Offset="0.0"/>
-                                <GradientStop Color="#00000000" Offset="0.38"/>
-                                <GradientStop Color="#3000E5FF" Offset="0.47"/>
-                                <GradientStop Color="#65FFFFFF" Offset="0.50"/>
-                                <GradientStop Color="#30BF5AF2" Offset="0.53"/>
-                                <GradientStop Color="#00000000" Offset="0.62"/>
+                                <GradientStop Color="#00000000" Offset="0.36"/>
+                                <GradientStop Color="#3500E5FF" Offset="0.46"/>
+                                <GradientStop Color="#80FFFFFF" Offset="0.50"/>
+                                <GradientStop Color="#35BF5AF2" Offset="0.54"/>
+                                <GradientStop Color="#00000000" Offset="0.64"/>
                                 <GradientStop Color="#00000000" Offset="1.0"/>
                             </LinearGradientBrush>
                         </Rectangle.Fill>
@@ -509,7 +535,7 @@
                     </Grid>
 
                     <!-- Строка быстрого калькулятора / Spotlight -->
-                    <Border Grid.Row="1" Background="#161618" CornerRadius="8" Padding="8,4" Margin="0,0,0,8">
+                    <Border Grid.Row="1" Background="{Binding ThemeSubContainerBrush}" BorderBrush="{Binding ThemeBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="8,4" Margin="0,0,0,8">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -519,7 +545,7 @@
                             <Path Grid.Column="0" Data="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
                                   Fill="#666666" Stretch="Uniform" Width="12" Height="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
                             <TextBox Grid.Column="1" Text="{Binding CalcQuery, UpdateSourceTrigger=PropertyChanged}"
-                                     Background="Transparent" Foreground="#FFFFFF" BorderThickness="0" FontSize="11"
+                                     Background="Transparent" Foreground="{Binding ThemeForegroundBrush}" BorderThickness="0" FontSize="11"
                                      VerticalAlignment="Center"/>
                             <Button Grid.Column="2" Content="{Binding CalcResult}" Style="{StaticResource ModeChipButton}"
                                     Background="#30D158" Foreground="#000000" FontSize="10" Padding="6,2"
@@ -547,7 +573,7 @@
                             <ColumnDefinition Width="120"/>
                         </Grid.ColumnDefinitions>
 
-                        <Border Grid.Column="0" Width="64" Height="64" CornerRadius="12" ClipToBounds="True" Background="#1C1C1E" VerticalAlignment="Center">
+                        <Border Grid.Column="0" Width="64" Height="64" CornerRadius="12" ClipToBounds="True" Background="{Binding ThemeControlBackgroundBrush}" BorderBrush="{Binding ThemeBorderBrush}" BorderThickness="1" VerticalAlignment="Center">
                             <Grid>
                                 <Image Source="{Binding TrackThumbnail}" Stretch="UniformToFill"
                                        Visibility="{Binding TrackThumbnail, Converter={StaticResource NullToVisibilityConverter}}"/>
@@ -558,12 +584,12 @@
                         </Border>
 
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,8,0">
-                            <TextBlock Text="{Binding TrackTitle}" Foreground="#FFFFFF" FontSize="13" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
-                            <TextBlock Text="{Binding TrackArtist}" Foreground="#8E8E93" FontSize="11" Margin="0,2,0,8" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding TrackTitle}" Foreground="{Binding ThemeForegroundBrush}" FontSize="13" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding TrackArtist}" Foreground="{Binding ThemeSecondaryForegroundBrush}" FontSize="11" Margin="0,2,0,8" TextTrimming="CharacterEllipsis"/>
 
                             <StackPanel Orientation="Horizontal">
                                 <Button Style="{StaticResource IslandCircleButton}" Width="30" Height="30" Margin="0,0,6,0" Command="{Binding SkipPreviousCommand}">
-                                    <Path Data="M6 6h2v12H6zm3.5 6l8.5 6V6z" Fill="#FFFFFF" Stretch="Uniform" Width="12" Height="12"/>
+                                    <Path Data="M6 6h2v12H6zm3.5 6l8.5 6V6z" Fill="{Binding ThemeForegroundBrush}" Stretch="Uniform" Width="12" Height="12"/>
                                 </Button>
                                 <Button Style="{StaticResource IslandCircleButton}" Width="34" Height="34" Margin="0,0,6,0" Background="#30D158" Command="{Binding TogglePlayPauseCommand}">
                                     <Grid>
@@ -574,13 +600,13 @@
                                     </Grid>
                                 </Button>
                                 <Button Style="{StaticResource IslandCircleButton}" Width="30" Height="30" Command="{Binding SkipNextCommand}">
-                                    <Path Data="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" Fill="#FFFFFF" Stretch="Uniform" Width="12" Height="12"/>
+                                    <Path Data="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" Fill="{Binding ThemeForegroundBrush}" Stretch="Uniform" Width="12" Height="12"/>
                                 </Button>
                             </StackPanel>
                         </StackPanel>
 
                         <!-- Монитор оборудования -->
-                        <Border Grid.Column="2" Background="#141416" CornerRadius="10" Padding="8,8" VerticalAlignment="Center">
+                        <Border Grid.Column="2" Background="{Binding ThemeSubContainerBrush}" BorderBrush="{Binding ThemeBorderBrush}" BorderThickness="1" CornerRadius="10" Padding="8,8" VerticalAlignment="Center">
                             <StackPanel>
                                 <Grid Margin="0,0,0,4">
                                     <Grid.ColumnDefinitions>
@@ -673,13 +699,15 @@
                                 <ItemsControl ItemsSource="{Binding ClipboardHistory}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Background="#1C1C1E" CornerRadius="6" Padding="8,4" Margin="0,0,0,4">
+                                            <Border Background="{Binding DataContext.ThemeSubContainerBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    BorderBrush="{Binding DataContext.ThemeBorderBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    BorderThickness="1" CornerRadius="6" Padding="8,4" Margin="0,0,0,4">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="*"/>
                                                         <ColumnDefinition Width="Auto"/>
                                                     </Grid.ColumnDefinitions>
-                                                    <TextBlock Grid.Column="0" Text="{Binding}" Foreground="#E0E0E0" FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="0" Text="{Binding}" Foreground="{Binding DataContext.ThemeForegroundBrush, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
                                                     <Button Grid.Column="1" Content="Копировать" Style="{StaticResource ModeChipButton}" FontSize="9" Padding="6,2" Margin="6,0,0,0"
                                                             Command="{Binding DataContext.CopyClipboardItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                             CommandParameter="{Binding}"/>
@@ -719,7 +747,9 @@
                                 <ItemsControl ItemsSource="{Binding DroppedFiles}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Background="#1C1C1E" CornerRadius="8" Padding="8,6" Margin="0,0,0,4">
+                                            <Border Background="{Binding DataContext.ThemeSubContainerBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    BorderBrush="{Binding DataContext.ThemeBorderBrush, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    BorderThickness="1" CornerRadius="8" Padding="8,6" Margin="0,0,0,4">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="Auto"/>
@@ -728,8 +758,8 @@
                                                     </Grid.ColumnDefinitions>
                                                     <Path Grid.Column="0" Data="{Binding IconPathData}" Fill="#00E5FF" Stretch="Uniform" Width="14" Height="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding FileName}" Foreground="#FFFFFF" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                                                        <TextBlock Text="{Binding FormattedSize}" Foreground="#8E8E93" FontSize="9"/>
+                                                        <TextBlock Text="{Binding FileName}" Foreground="{Binding DataContext.ThemeForegroundBrush, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{Binding FormattedSize}" Foreground="{Binding DataContext.ThemeSecondaryForegroundBrush, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="9"/>
                                                     </StackPanel>
                                                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                                                         <Button Content="Путь" Style="{StaticResource ModeChipButton}" FontSize="9" Padding="6,2" Margin="0,0,4,0"
@@ -852,7 +882,7 @@
                                             </Border>
 
                                             <!-- Сообщение ассистента -->
-                                            <Border HorizontalAlignment="Left" Background="#20FFFFFF" CornerRadius="14,14,14,3"
+                                            <Border HorizontalAlignment="Left" Background="{Binding ThemeSubContainerBrush}" BorderBrush="{Binding ThemeBorderBrush}" BorderThickness="1" CornerRadius="14,14,14,3"
                                                     Padding="12,8" MaxWidth="510"
                                                     Visibility="{Binding IsAssistant, Converter={StaticResource BoolToVisConverter}}">
                                                 <StackPanel>
@@ -860,7 +890,7 @@
                                                             Visibility="{Binding HasBadge, Converter={StaticResource BoolToVisConverter}}">
                                                         <TextBlock Text="{Binding ActionBadge}" Foreground="#000000" FontSize="9" FontWeight="Bold"/>
                                                     </Border>
-                                                    <TextBlock Text="{Binding Content}" Foreground="#F2F2F7" FontSize="12" TextWrapping="Wrap" LineHeight="17"/>
+                                                    <TextBlock Text="{Binding Content}" Foreground="{Binding ThemeForegroundBrush}" FontSize="12" TextWrapping="Wrap" LineHeight="17"/>
                                                 </StackPanel>
                                             </Border>
                                         </Grid>
@@ -912,7 +942,7 @@
 
                             <!-- Текстовое поле -->
                             <TextBox Grid.Column="1" Text="{Binding AgentUserInput, UpdateSourceTrigger=PropertyChanged}"
-                                     Background="#252528" Foreground="#FFFFFF" BorderBrush="#35FFFFFF" BorderThickness="1"
+                                     Background="{Binding ThemeControlBackgroundBrush}" Foreground="{Binding ThemeForegroundBrush}" BorderBrush="{Binding ThemeBorderBrush}" BorderThickness="1"
                                      Padding="10,6" FontSize="12" Height="34" VerticalContentAlignment="Center">
                                 <TextBox.InputBindings>
                                     <KeyBinding Key="Return" Command="{Binding SendAgentMessageCommand}"/>
