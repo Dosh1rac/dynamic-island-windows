@@ -500,7 +500,7 @@ namespace DynamicIsland.ViewModels
             if (success)
             {
                 CityPickerStatusMessage = $"✓ Установлен город: {_weatherService.CurrentCity}";
-                _soundEffectService.PlaySnap();
+                _soundEffectService.PlayTap();
                 await Task.Delay(900);
                 IsCityPickerOpen = false;
             }
@@ -518,7 +518,7 @@ namespace DynamicIsland.ViewModels
             if (success)
             {
                 CityPickerStatusMessage = $"✓ Установлен город: {_weatherService.CurrentCity}";
-                _soundEffectService.PlaySnap();
+                _soundEffectService.PlayTap();
                 await Task.Delay(900);
                 IsCityPickerOpen = false;
             }
@@ -530,7 +530,7 @@ namespace DynamicIsland.ViewModels
             CityPickerStatusMessage = "Определение по IP...";
             await _weatherService.SetAutoLocationAsync();
             CityPickerStatusMessage = $"✓ Авто по IP: {_weatherService.CurrentCity}";
-            _soundEffectService.PlaySnap();
+            _soundEffectService.PlayTap();
             await Task.Delay(900);
             IsCityPickerOpen = false;
         }
@@ -545,7 +545,7 @@ namespace DynamicIsland.ViewModels
 
                 ActiveNotification = notification;
                 IsShowingNotification = true;
-                _soundEffectService.PlayPop();
+                _soundEffectService.PlayChime();
 
                 IslandWidth = 240;
                 IslandHeight = 40;
@@ -658,7 +658,7 @@ namespace DynamicIsland.ViewModels
         {
             App.Current?.Dispatcher.Invoke(() =>
             {
-                _soundEffectService.PlayPop();
+                _soundEffectService.PlayChime();
                 _notificationService.TriggerCustomNotification(new HudNotification
                 {
                     Type = NotificationType.TimerFinished,
@@ -677,7 +677,7 @@ namespace DynamicIsland.ViewModels
         {
             if (int.TryParse(minutesStr, out int mins))
             {
-                _soundEffectService.PlayPop();
+                _soundEffectService.PlayTap();
                 _timerService.Start(TimeSpan.FromMinutes(mins));
             }
         }
@@ -685,7 +685,7 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public void ToggleTimer()
         {
-            _soundEffectService.PlayPop();
+            _soundEffectService.PlayTap();
             if (_timerService.IsRunning)
             {
                 _timerService.Pause();
@@ -703,7 +703,7 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public void ResetTimer()
         {
-            _soundEffectService.PlaySnap();
+            _soundEffectService.PlayTap();
             _timerService.Reset();
         }
 
@@ -712,7 +712,7 @@ namespace DynamicIsland.ViewModels
         {
             if (int.TryParse(minutesStr, out int mins))
             {
-                _soundEffectService.PlayPop();
+                _soundEffectService.PlayTap();
                 _timerService.AddMinutes(mins);
             }
         }
@@ -722,7 +722,7 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public void CopyClipboardItem(string text)
         {
-            _soundEffectService.PlaySnap();
+            _soundEffectService.PlayTap();
             _clipboardService.CopyToClipboard(text);
         }
 
@@ -737,7 +737,7 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public void LaunchApp(string appKey)
         {
-            _soundEffectService.PlayPop();
+            _soundEffectService.PlayTap();
             try
             {
                 switch (appKey.ToLowerInvariant())
@@ -772,7 +772,7 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public void ToggleAutoStart()
         {
-            _soundEffectService.PlayPop();
+            _soundEffectService.PlayTap();
             IsAutoStartEnabled = !IsAutoStartEnabled;
             AutoStartHelper.SetAutoStart(IsAutoStartEnabled);
         }
@@ -782,13 +782,13 @@ namespace DynamicIsland.ViewModels
         {
             IsSoundEnabled = !IsSoundEnabled;
             _soundEffectService.IsSoundEnabled = IsSoundEnabled;
-            if (IsSoundEnabled) _soundEffectService.PlayPop();
+            if (IsSoundEnabled) _soundEffectService.PlayTap();
         }
 
         [RelayCommand]
         public void SetExpandedTab(string tab)
         {
-            _soundEffectService.PlayPop();
+            _soundEffectService.PlayTap();
             ExpandedTab = tab;
             UpdateDimensions();
         }
@@ -900,7 +900,7 @@ namespace DynamicIsland.ViewModels
             if (CurrentState != IslandState.Expanded)
             {
                 DismissNotification();
-                _soundEffectService.PlayPop();
+                _soundEffectService.PlayExpand();
                 CurrentState = IslandState.Expanded;
                 UpdateStateAndDimensions();
             }
@@ -911,20 +911,20 @@ namespace DynamicIsland.ViewModels
         {
             if (CurrentState == IslandState.Minimized)
             {
-                _soundEffectService.PlayPop();
+                _soundEffectService.PlayExpand();
                 RestoreFromMinimized();
                 return;
             }
 
             if (CurrentState == IslandState.Expanded)
             {
-                _soundEffectService.PlaySnap();
+                _soundEffectService.PlayCollapse();
                 CurrentState = IslandState.Idle;
                 EvaluateDisplayState();
             }
             else
             {
-                _soundEffectService.PlayPop();
+                _soundEffectService.PlayExpand();
                 DismissNotification();
                 CurrentState = IslandState.Expanded;
                 UpdateDimensions();
@@ -934,7 +934,7 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public void MinimizeToBar()
         {
-            _soundEffectService.PlaySnap();
+            _soundEffectService.PlayCollapse();
             DismissNotification();
             CurrentState = IslandState.Minimized;
             UpdateDimensions();
@@ -945,7 +945,7 @@ namespace DynamicIsland.ViewModels
         {
             if (CurrentState == IslandState.Minimized)
             {
-                _soundEffectService.PlayPop();
+                _soundEffectService.PlayExpand();
                 CurrentState = IslandState.Idle;
                 EvaluateDisplayState();
             }
@@ -956,7 +956,7 @@ namespace DynamicIsland.ViewModels
         {
             if (CurrentState == IslandState.Expanded)
             {
-                _soundEffectService.PlaySnap();
+                _soundEffectService.PlayCollapse();
                 EvaluateDisplayState();
             }
         }
@@ -964,7 +964,7 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public void SetMode(string modeStr)
         {
-            _soundEffectService.PlayPop();
+            _soundEffectService.PlayTap();
             if (Enum.TryParse<DisplayMode>(modeStr, true, out var mode))
             {
                 SelectedMode = mode;
@@ -975,28 +975,28 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public async Task TogglePlayPauseAsync()
         {
-            _soundEffectService.PlayPop();
+            _soundEffectService.PlayTap();
             await _mediaService.TogglePlayPauseAsync();
         }
 
         [RelayCommand]
         public async Task SkipNextAsync()
         {
-            _soundEffectService.PlayPop();
+            _soundEffectService.PlayTap();
             await _mediaService.SkipNextAsync();
         }
 
         [RelayCommand]
         public async Task SkipPreviousAsync()
         {
-            _soundEffectService.PlayPop();
+            _soundEffectService.PlayTap();
             await _mediaService.SkipPreviousAsync();
         }
 
         [RelayCommand]
         public void ToggleClickThrough()
         {
-            _soundEffectService.PlayPop();
+            _soundEffectService.PlayTap();
             IsClickThrough = !IsClickThrough;
             RequestClickThroughChanged?.Invoke(IsClickThrough);
         }
@@ -1066,12 +1066,12 @@ namespace DynamicIsland.ViewModels
             {
                 _voiceService.StartRecording();
                 IsVoiceRecording = true;
-                _soundEffectService.PlayPop();
+                _soundEffectService.PlayTap();
             }
             else
             {
                 IsVoiceRecording = false;
-                _soundEffectService.PlaySnap();
+                _soundEffectService.PlayTap();
                 IsAgentBusy = true;
                 AgentBusyStatus = "Распознаю голос...";
 
@@ -1089,6 +1089,7 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public void ClearAgentChat()
         {
+            _soundEffectService.PlayTap();
             ChatMessages.Clear();
             ChatMessages.Add(new ChatMessageItem
             {
@@ -1100,6 +1101,7 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public void OpenAiSettings()
         {
+            _soundEffectService.PlayTap();
             var cfg = _aiAgentService.Config;
             AiSettingsBaseUrl = cfg.BaseUrl;
             AiSettingsApiKey = cfg.ApiKey;
@@ -1111,6 +1113,7 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public void CloseAiSettings()
         {
+            _soundEffectService.PlayTap();
             IsAiSettingsOpen = false;
         }
 
@@ -1125,13 +1128,14 @@ namespace DynamicIsland.ViewModels
 
             _aiAgentService.SaveConfig(cfg);
             AiStatusSummary = $"{cfg.Model}";
-            _soundEffectService.PlaySnap();
+            _soundEffectService.PlayTap();
             IsAiSettingsOpen = false;
         }
 
         [RelayCommand]
         public void ApplyAiPreset(string preset)
         {
+            _soundEffectService.PlayTap();
             switch (preset)
             {
                 case "Tooken":
@@ -1256,6 +1260,7 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public void CycleTheme()
         {
+            _soundEffectService.PlayTap();
             var nextTheme = CurrentTheme switch
             {
                 IslandTheme.LiquidGlassDark => IslandTheme.LiquidGlassLight,
@@ -1270,6 +1275,7 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public void SetTheme(string themeName)
         {
+            _soundEffectService.PlayTap();
             var theme = themeName switch
             {
                 "Dark" => IslandTheme.Dark,
@@ -1283,12 +1289,14 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public void ToggleLiquidWaves()
         {
+            _soundEffectService.PlayTap();
             ApplyTheme(CurrentTheme, !EnableLiquidWaves);
         }
 
         [RelayCommand]
         public void ToggleThemePicker()
         {
+            _soundEffectService.PlayTap();
             IsThemePickerOpen = !IsThemePickerOpen;
             if (IsThemePickerOpen)
             {
@@ -1300,6 +1308,7 @@ namespace DynamicIsland.ViewModels
         [RelayCommand]
         public void CloseThemePicker()
         {
+            _soundEffectService.PlayTap();
             IsThemePickerOpen = false;
         }
 
