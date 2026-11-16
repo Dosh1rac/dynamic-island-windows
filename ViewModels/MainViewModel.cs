@@ -76,6 +76,22 @@ namespace DynamicIsland.ViewModels
         [ObservableProperty]
         private bool _hasMedia;
 
+        [ObservableProperty]
+        private string _trackPositionFormatted = "00:00";
+
+        [ObservableProperty]
+        private string _trackDurationFormatted = "00:00";
+
+        [ObservableProperty]
+        private double _trackProgress;
+
+        [ObservableProperty]
+        private Color _ambientGlowColor = Color.FromArgb(0x35, 0x0A, 0x84, 0xFF);
+
+        private TimeSpan _currentTrackPosition = TimeSpan.Zero;
+        private TimeSpan _currentTrackDuration = TimeSpan.Zero;
+        private readonly DispatcherTimer _playbackTimer;
+
         // Эквалайзер (14 полос)
         public ObservableCollection<float> EqualizerBands { get; } = new();
 
@@ -84,13 +100,18 @@ namespace DynamicIsland.ViewModels
         private float _cpuUsage;
 
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(HasCpuTemp))]
         private float _cpuTemp;
 
         [ObservableProperty]
         private float _gpuUsage;
 
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(HasGpuTemp))]
         private float _gpuTemp;
+
+        public bool HasCpuTemp => CpuTemp > 0;
+        public bool HasGpuTemp => GpuTemp > 0;
 
         [ObservableProperty]
         private bool _isFullscreenGame;
@@ -328,6 +349,19 @@ namespace DynamicIsland.ViewModels
             _hudDismissTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1800) };
             _hudDismissTimer.Tick += (s, e) => DismissNotification();
 
+            _playbackTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _playbackTimer.Tick += (s, e) =>
+            {
+                if (IsMediaPlaying && _currentTrackDuration > TimeSpan.Zero)
+                {
+                    _currentTrackPosition = _currentTrackPosition.Add(TimeSpan.FromSeconds(1));
+                    if (_currentTrackPosition > _currentTrackDuration)
+                        _currentTrackPosition = _currentTrackDuration;
+                    UpdatePlaybackTimes();
+                }
+            };
+            _playbackTimer.Start();
+
             // Подписки
             _cursorTrackerService.CursorMoved += OnCursorMoved;
             _mediaService.MediaChanged += OnMediaChanged;
@@ -372,9 +406,24 @@ namespace DynamicIsland.ViewModels
                 TrackThumbnail = track.Thumbnail;
                 IsMediaPlaying = track.IsPlaying;
                 HasMedia = track.HasMedia;
+                AmbientGlowColor = track.AccentColor;
+                _currentTrackPosition = track.Position;
+                _currentTrackDuration = track.Duration;
+                UpdatePlaybackTimes();
 
                 EvaluateDisplayState();
             });
+        }
+
+        private void UpdatePlaybackTimes()
+        {
+            TrackPositionFormatted = _currentTrackPosition.ToString(@"mm\:ss");
+            TrackDurationFormatted = _currentTrackDuration > TimeSpan.Zero
+                ? _currentTrackDuration.ToString(@"mm\:ss")
+                : "--:--";
+            TrackProgress = _currentTrackDuration.TotalSeconds > 0
+                ? Math.Clamp(_currentTrackPosition.TotalSeconds / _currentTrackDuration.TotalSeconds, 0.0, 1.0)
+                : 0.0;
         }
 
         private void OnSpectrumUpdated(object? sender, float[] bands)
@@ -398,6 +447,9 @@ namespace DynamicIsland.ViewModels
                 GpuUsage = metrics.GpuUsage;
                 GpuTemp = metrics.GpuTemp;
                 IsFullscreenGame = metrics.IsFullscreenGameActive;
+
+                OnPropertyChanged(nameof(HasCpuTemp));
+                OnPropertyChanged(nameof(HasGpuTemp));
 
                 EvaluateDisplayState();
             });
@@ -1122,101 +1174,62 @@ namespace DynamicIsland.ViewModels
             CurrentTheme = theme;
             EnableLiquidWaves = enableWaves;
 
+            // 1px Rim Light (тонкий контур от 20% белого сверху до 5% белого снизу)
+            var rimLight = new LinearGradientBrush
+            {
+                StartPoint = new System.Windows.Point(0, 0),
+                EndPoint = new System.Windows.Point(0, 1)
+            };
+            rimLight.GradientStops.Add(new GradientStop(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF), 0.0));
+            rimLight.GradientStops.Add(new GradientStop(Color.FromArgb(0x18, 0xFF, 0xFF, 0xFF), 0.5));
+            rimLight.GradientStops.Add(new GradientStop(Color.FromArgb(0x0D, 0xFF, 0xFF, 0xFF), 1.0));
+
             switch (theme)
             {
-                case IslandTheme.Dark:
-                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromRgb(0x00, 0x00, 0x00));
-                    CapsuleBorderBrush = new SolidColorBrush(Color.FromArgb(0x35, 0xFF, 0xFF, 0xFF));
-                    CapsuleBorderThickness = new Thickness(1.0);
-                    ThemeForegroundBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0xFF, 0xFF));
-                    ThemeSecondaryForegroundBrush = new SolidColorBrush(Color.FromRgb(0x8E, 0x8E, 0x93));
-                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromRgb(0x25, 0x25, 0x28));
-                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromRgb(0x16, 0x16, 0x18));
-                    ThemeBorderBrush = new SolidColorBrush(Color.FromArgb(0x35, 0xFF, 0xFF, 0xFF));
-                    IsDarkTheme = true;
-                    ThemeDisplayShortName = "🌑 Тёмная";
-                    ThemeDisplayName = "Тёмная (OLED Чёрная)";
-                    break;
-
                 case IslandTheme.Light:
-                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromRgb(0xF5, 0xF5, 0xF7));
-                    CapsuleBorderBrush = new SolidColorBrush(Color.FromArgb(0x35, 0x00, 0x00, 0x00));
+                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromArgb(0xF4, 0xF4, 0xF4, 0xF6));
+                    CapsuleBorderBrush = new SolidColorBrush(Color.FromArgb(0x25, 0x00, 0x00, 0x00));
                     CapsuleBorderThickness = new Thickness(1.0);
-                    ThemeForegroundBrush = new SolidColorBrush(Color.FromRgb(0x1C, 0x1C, 0x1E));
-                    ThemeSecondaryForegroundBrush = new SolidColorBrush(Color.FromRgb(0x63, 0x63, 0x66));
-                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromRgb(0xE5, 0xE5, 0xEA));
-                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromRgb(0xEB, 0xEB, 0xF0));
-                    ThemeBorderBrush = new SolidColorBrush(Color.FromArgb(0x20, 0x00, 0x00, 0x00));
+                    ThemeForegroundBrush = new SolidColorBrush(Color.FromRgb(0x18, 0x18, 0x1B));
+                    ThemeSecondaryForegroundBrush = new SolidColorBrush(Color.FromRgb(0x71, 0x71, 0x7A));
+                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromRgb(0xE4, 0xE4, 0xE7));
+                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromRgb(0xE4, 0xE4, 0xE7));
+                    ThemeBorderBrush = new SolidColorBrush(Color.FromRgb(0xD4, 0xD4, 0xD8));
                     IsDarkTheme = false;
                     ThemeDisplayShortName = "☀️ Светлая";
-                    ThemeDisplayName = "Светлая (Керамика)";
+                    ThemeDisplayName = "Светлая (#F4F4F6)";
                     break;
 
                 case IslandTheme.LiquidGlassLight:
-                    // Прозрачный морозный кристалл / чистое светлое жидкое стекло как на фото
-                    var lightGlassBg = new LinearGradientBrush
-                    {
-                        StartPoint = new System.Windows.Point(0, 0),
-                        EndPoint = new System.Windows.Point(0, 1)
-                    };
-                    lightGlassBg.GradientStops.Add(new GradientStop(Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF), 0.0));
-                    lightGlassBg.GradientStops.Add(new GradientStop(Color.FromArgb(0x22, 0xEB, 0xF4, 0xFC), 0.45));
-                    lightGlassBg.GradientStops.Add(new GradientStop(Color.FromArgb(0x35, 0xFF, 0xFF, 0xFF), 1.0));
-                    CapsuleBackgroundBrush = lightGlassBg;
-
-                    var lightGlassGrad = new LinearGradientBrush
-                    {
-                        StartPoint = new System.Windows.Point(0, 0),
-                        EndPoint = new System.Windows.Point(0, 1)
-                    };
-                    lightGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0xF8, 0xFF, 0xFF, 0xFF), 0.0));
-                    lightGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x80, 0x90, 0xB5, 0xD0), 0.35));
-                    lightGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF), 0.7));
-                    lightGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x75, 0xFF, 0xFF, 0xFF), 1.0));
-                    CapsuleBorderBrush = lightGlassGrad;
-                    CapsuleBorderThickness = new Thickness(1.5);
-                    ThemeForegroundBrush = new SolidColorBrush(Color.FromRgb(0x1C, 0x1C, 0x1E));
-                    ThemeSecondaryForegroundBrush = new SolidColorBrush(Color.FromRgb(0x50, 0x50, 0x55));
-                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromArgb(0x38, 0xFF, 0xFF, 0xFF));
-                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromArgb(0x28, 0xFF, 0xFF, 0xFF));
-                    ThemeBorderBrush = new SolidColorBrush(Color.FromArgb(0x40, 0x90, 0xB0, 0xC8));
+                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromArgb(0xE0, 0xEE, 0xF2, 0xF8));
+                    CapsuleBorderBrush = rimLight;
+                    CapsuleBorderThickness = new Thickness(1.0);
+                    ThemeForegroundBrush = new SolidColorBrush(Color.FromRgb(0x18, 0x18, 0x1B));
+                    ThemeSecondaryForegroundBrush = new SolidColorBrush(Color.FromRgb(0x71, 0x71, 0x7A));
+                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromArgb(0x60, 0xFF, 0xFF, 0xFF));
+                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromArgb(0x45, 0xFF, 0xFF, 0xFF));
+                    ThemeBorderBrush = new SolidColorBrush(Color.FromArgb(0x30, 0x90, 0xB0, 0xD0));
                     IsDarkTheme = false;
                     ThemeDisplayShortName = "🌊 Стекло (Свет)";
                     ThemeDisplayName = "Жидкое стекло (Светлое)";
                     break;
 
+                case IslandTheme.Dark:
                 case IslandTheme.LiquidGlassDark:
                 default:
-                    // Настоящее прозрачное жидкое стекло как на фото (85% прозрачности фона, призматические блики)
-                    var darkGlassBg = new LinearGradientBrush
-                    {
-                        StartPoint = new System.Windows.Point(0, 0),
-                        EndPoint = new System.Windows.Point(0, 1)
-                    };
-                    darkGlassBg.GradientStops.Add(new GradientStop(Color.FromArgb(0x32, 0x14, 0x22, 0x36), 0.0));
-                    darkGlassBg.GradientStops.Add(new GradientStop(Color.FromArgb(0x18, 0x08, 0x0F, 0x1C), 0.45));
-                    darkGlassBg.GradientStops.Add(new GradientStop(Color.FromArgb(0x2D, 0x10, 0x1C, 0x30), 1.0));
-                    CapsuleBackgroundBrush = darkGlassBg;
-
-                    var darkGlassGrad = new LinearGradientBrush
-                    {
-                        StartPoint = new System.Windows.Point(0, 0),
-                        EndPoint = new System.Windows.Point(0, 1)
-                    };
-                    darkGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0xFA, 0xFF, 0xFF, 0xFF), 0.0));
-                    darkGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x95, 0x00, 0xE5, 0xFF), 0.25));
-                    darkGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x45, 0xFF, 0xFF, 0xFF), 0.65));
-                    darkGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x75, 0xFF, 0xFF, 0xFF), 1.0));
-                    CapsuleBorderBrush = darkGlassGrad;
-                    CapsuleBorderThickness = new Thickness(1.5);
-                    ThemeForegroundBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0xFF, 0xFF));
-                    ThemeSecondaryForegroundBrush = new SolidColorBrush(Color.FromRgb(0xBB, 0xBB, 0xC2));
-                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromArgb(0x2D, 0xFF, 0xFF, 0xFF));
-                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromArgb(0x22, 0x00, 0x0A, 0x18));
-                    ThemeBorderBrush = new SolidColorBrush(Color.FromArgb(0x35, 0xFF, 0xFF, 0xFF));
+                    // Основной фон острова: #0D0D0F (почти черный с легким холодным подтоном, Opacity ~ 0.94)
+                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromArgb(0xF0, 0x0D, 0x0D, 0x0F));
+                    CapsuleBorderBrush = rimLight; // 1px Rim Light
+                    CapsuleBorderThickness = new Thickness(1.0);
+                    // Основной текст: #F4F4F5, Вторичный текст: #A1A1AA, Карточки: #18181B, Контур: #27272A
+                    ThemeForegroundBrush = new SolidColorBrush(Color.FromRgb(0xF4, 0xF4, 0xF5));
+                    ThemeSecondaryForegroundBrush = new SolidColorBrush(Color.FromRgb(0xA1, 0xA1, 0xAA));
+                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromRgb(0x18, 0x18, 0x1B));
+                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromRgb(0x18, 0x18, 0x1B));
+                    ThemeBorderBrush = new SolidColorBrush(Color.FromRgb(0x27, 0x27, 0x2A));
                     IsDarkTheme = true;
-                    ThemeDisplayShortName = "💎 Стекло (Тьма)";
-                    ThemeDisplayName = "Жидкое стекло (Тёмное)";
+                    ThemeDisplayShortName = "🌑 Тёмная";
+                    ThemeDisplayName = "Премиум Тёмная (#0D0D0F)";
                     break;
             }
 
@@ -1308,6 +1321,7 @@ namespace DynamicIsland.ViewModels
             _weatherService.Dispose();
             _voiceService.Dispose();
             _hudDismissTimer.Stop();
+            _playbackTimer.Stop();
         }
     }
 }

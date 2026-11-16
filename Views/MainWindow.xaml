@@ -33,6 +33,24 @@
         <helpers:CornerRadiusConverter x:Key="CornerRadiusConverter"/>
         <BooleanToVisibilityConverter x:Key="BoolToVisConverter"/>
 
+        <helpers:ModeActiveBrushConverter x:Key="SegmentedTabBrushConverter">
+            <helpers:ModeActiveBrushConverter.ActiveBrush>
+                <SolidColorBrush Color="#27272A"/>
+            </helpers:ModeActiveBrushConverter.ActiveBrush>
+            <helpers:ModeActiveBrushConverter.InactiveBrush>
+                <SolidColorBrush Color="#00000000"/>
+            </helpers:ModeActiveBrushConverter.InactiveBrush>
+        </helpers:ModeActiveBrushConverter>
+
+        <helpers:ModeActiveBrushConverter x:Key="SegmentedTabForegroundConverter">
+            <helpers:ModeActiveBrushConverter.ActiveBrush>
+                <SolidColorBrush Color="#F4F4F5"/>
+            </helpers:ModeActiveBrushConverter.ActiveBrush>
+            <helpers:ModeActiveBrushConverter.InactiveBrush>
+                <SolidColorBrush Color="#A1A1AA"/>
+            </helpers:ModeActiveBrushConverter.InactiveBrush>
+        </helpers:ModeActiveBrushConverter>
+
         <!-- Современный тонкий скроллбар в стиле iOS/macOS -->
         <Style x:Key="ModernMinimalScrollBar" TargetType="{x:Type ScrollBar}">
             <Setter Property="Background" Value="Transparent"/>
@@ -155,6 +173,70 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- Стиль сегментированных вкладок -->
+        <Style x:Key="SegmentedTabButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#A1A1AA"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="8,3.5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="tabBorder" Background="{TemplateBinding Background}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextBlock.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="tabBorder" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Стиль унифицированных кнопок нижнего док-бара -->
+        <Style x:Key="BottomDockButton" TargetType="Button">
+            <Setter Property="Background" Value="#18181B"/>
+            <Setter Property="BorderBrush" Value="#27272A"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="#A1A1AA"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="Padding" Value="8,0"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="dockBtnBorder" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="7" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="dockBtnBorder" Property="Background" Value="#27272A"/>
+                                <Setter TargetName="dockBtnBorder" Property="BorderBrush" Value="#3F3F46"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="dockBtnBorder" Property="Background" Value="#3F3F46"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Стиль круглых/квадратных иконочных кнопок нижнего док-бара -->
+        <Style x:Key="BottomDockIconButton" TargetType="Button" BasedOn="{StaticResource BottomDockButton}">
+            <Setter Property="Width" Value="26"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
     </Window.Resources>
 
     <!-- Корневой контейнер -->
@@ -176,6 +258,11 @@
                 MouseLeftButtonUp="IslandCapsule_MouseLeftButtonUp"
                 MouseWheel="IslandCapsule_MouseWheel">
 
+            <!-- Мягкая глубокая внешняя тень острова (парит над окнами) -->
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="35" Opacity="0.60" Color="#000000" Direction="270" ShadowDepth="6" RenderingBias="Performance"/>
+            </Border.Effect>
+
             <Border.RenderTransform>
                 <TransformGroup>
                     <ScaleTransform x:Name="CapsuleScale" ScaleX="1.0" ScaleY="1.0"/>
@@ -185,47 +272,11 @@
             </Border.RenderTransform>
 
             <Grid>
-                <!-- ================= СЛОЙ ОПТИЧЕСКОГО ЖИДКОГО СТЕКЛА И ПРЕЛОМЛЕНИЯ ================= -->
+                <!-- ================= СЛОЙ ВОЛН (ТОЛЬКО ПРИ ВКЛЮЧЕННОЙ АНИМАЦИИ) ================= -->
                 <Grid IsHitTestVisible="False" ClipToBounds="True">
-                    <!-- 1. Внутренняя фаска полного преломления (TIR Shadow Rim - оптическая глубина стекла) -->
-                    <Border Margin="1.5"
-                            CornerRadius="{Binding CapsuleCornerRadius, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource CornerRadiusConverter}}"
-                            BorderThickness="2.5" Opacity="0.55">
-                        <Border.BorderBrush>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                <GradientStop Color="#55000000" Offset="0.0"/>
-                                <GradientStop Color="#25001020" Offset="0.45"/>
-                                <GradientStop Color="#60000000" Offset="1.0"/>
-                            </LinearGradientBrush>
-                        </Border.BorderBrush>
-                    </Border>
-
-                    <!-- 2. Выпуклая оптическая линза / Блик мениска (Curved Lens Glare Meniscus) -->
-                    <Border VerticalAlignment="Top" Height="32" Opacity="0.45" Margin="2,1,2,0"
-                            CornerRadius="{Binding CapsuleCornerRadius, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource CornerRadiusConverter}}">
-                        <Border.Background>
-                            <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
-                                <GradientStop Color="#90FFFFFF" Offset="0.0"/>
-                                <GradientStop Color="#30FFFFFF" Offset="0.35"/>
-                                <GradientStop Color="#00FFFFFF" Offset="1.0"/>
-                            </LinearGradientBrush>
-                        </Border.Background>
-                    </Border>
-
-                    <!-- 3. Нижний отражённый рефлекс капли воды (Bottom Caustic Bounce) -->
-                    <Border VerticalAlignment="Bottom" Height="8" Opacity="0.40" Margin="3,0,3,1.5"
-                            CornerRadius="{Binding CapsuleCornerRadius, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource CornerRadiusConverter}}">
-                        <Border.Background>
-                            <LinearGradientBrush StartPoint="0.5,1" EndPoint="0.5,0">
-                                <GradientStop Color="#65FFFFFF" Offset="0.0"/>
-                                <GradientStop Color="#00FFFFFF" Offset="1.0"/>
-                            </LinearGradientBrush>
-                        </Border.Background>
-                    </Border>
-
-                    <!-- 4. Бегущая каустическая рябь воды / световая волна с призматической радугой -->
+                    <!-- Бегущая рябь воды (только при явном включении в настройках) -->
                     <Rectangle x:Name="WaveShimmerRect" Width="950" Height="550" HorizontalAlignment="Left" VerticalAlignment="Top"
-                               Opacity="0.50" RenderTransformOrigin="0.5,0.5"
+                               Opacity="0.35" RenderTransformOrigin="0.5,0.5"
                                Visibility="{Binding EnableLiquidWaves, Converter={StaticResource BoolToVisConverter}}">
                         <Rectangle.RenderTransform>
                             <TransformGroup>
@@ -237,9 +288,9 @@
                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                 <GradientStop Color="#00000000" Offset="0.0"/>
                                 <GradientStop Color="#00000000" Offset="0.36"/>
-                                <GradientStop Color="#3500E5FF" Offset="0.46"/>
-                                <GradientStop Color="#80FFFFFF" Offset="0.50"/>
-                                <GradientStop Color="#35BF5AF2" Offset="0.54"/>
+                                <GradientStop Color="#2500E5FF" Offset="0.46"/>
+                                <GradientStop Color="#40FFFFFF" Offset="0.50"/>
+                                <GradientStop Color="#25BF5AF2" Offset="0.54"/>
                                 <GradientStop Color="#00000000" Offset="0.64"/>
                                 <GradientStop Color="#00000000" Offset="1.0"/>
                             </LinearGradientBrush>
@@ -394,19 +445,31 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <Border Grid.Column="0" Width="26" Height="26" CornerRadius="13" ClipToBounds="True" Background="#1C1C1E">
-                        <Grid>
-                            <Image Source="{Binding TrackThumbnail}" Stretch="UniformToFill"
-                                   Visibility="{Binding TrackThumbnail, Converter={StaticResource NullToVisibilityConverter}}"/>
-                            <Path Visibility="{Binding TrackThumbnail, Converter={StaticResource NotNullToVisibilityConverter}}"
-                                  Data="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
-                                  Fill="#A0A0A0" Stretch="Uniform" Width="12" Height="12"/>
-                        </Grid>
-                    </Border>
+                    <!-- Мини-обложка с Ambient Glow -->
+                    <Grid Grid.Column="0" Width="26" Height="26" VerticalAlignment="Center">
+                        <Ellipse Width="38" Height="38" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                 IsHitTestVisible="False" Opacity="0.30">
+                            <Ellipse.Fill>
+                                <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+                                    <GradientStop Color="{Binding AmbientGlowColor}" Offset="0.0"/>
+                                    <GradientStop Color="#00000000" Offset="1.0"/>
+                                </RadialGradientBrush>
+                            </Ellipse.Fill>
+                        </Ellipse>
+                        <Border Width="26" Height="26" CornerRadius="13" ClipToBounds="True" Background="#18181B" BorderBrush="#27272A" BorderThickness="1">
+                            <Grid>
+                                <Image Source="{Binding TrackThumbnail}" Stretch="UniformToFill"
+                                       Visibility="{Binding TrackThumbnail, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                <Path Visibility="{Binding TrackThumbnail, Converter={StaticResource NotNullToVisibilityConverter}}"
+                                      Data="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
+                                      Fill="#A1A1AA" Stretch="Uniform" Width="12" Height="12"/>
+                            </Grid>
+                        </Border>
+                    </Grid>
 
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0" ClipToBounds="True">
-                        <TextBlock Text="{Binding TrackTitle}" Foreground="#FFFFFF" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                        <TextBlock Text="{Binding TrackArtist}" Foreground="#8E8E93" FontSize="9" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding TrackTitle}" Foreground="#F4F4F5" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding TrackArtist}" Foreground="#A1A1AA" FontSize="9" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
@@ -453,8 +516,9 @@
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                         <Border Background="#1F8EFA" Width="5" Height="5" CornerRadius="2.5" Margin="0,0,5,0" VerticalAlignment="Center"/>
                         <TextBlock Text="CPU" Foreground="#8E8E93" FontSize="9" FontWeight="Bold" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding CpuUsage, StringFormat={}{0:F0}%}" Foreground="#FFFFFF" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding CpuTemp, StringFormat={} • {0:F0}°}" Foreground="#FF9F0A" FontSize="9" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding CpuUsage, StringFormat={}{0:F0}%}" Foreground="#F4F4F5" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" FontFamily="Consolas, Cascadia Code"/>
+                        <TextBlock Text="{Binding CpuTemp, StringFormat={} • {0:F0}°}" Foreground="#FF9F0A" FontSize="9" VerticalAlignment="Center" FontFamily="Consolas, Cascadia Code"
+                                   Visibility="{Binding HasCpuTemp, Converter={StaticResource BoolToVisConverter}}"/>
                     </StackPanel>
 
                     <Border Grid.Column="1" Width="1" Height="14" Background="#26FFFFFF" Margin="8,0"/>
@@ -462,8 +526,9 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                         <Border Background="#30D158" Width="5" Height="5" CornerRadius="2.5" Margin="0,0,5,0" VerticalAlignment="Center"/>
                         <TextBlock Text="GPU" Foreground="#8E8E93" FontSize="9" FontWeight="Bold" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding GpuUsage, StringFormat={}{0:F0}%}" Foreground="#FFFFFF" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding GpuTemp, StringFormat={} • {0:F0}°}" Foreground="#FF453A" FontSize="9" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding GpuUsage, StringFormat={}{0:F0}%}" Foreground="#F4F4F5" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" FontFamily="Consolas, Cascadia Code"/>
+                        <TextBlock Text="{Binding GpuTemp, StringFormat={} • {0:F0}°}" Foreground="#FF453A" FontSize="9" VerticalAlignment="Center" FontFamily="Consolas, Cascadia Code"
+                                   Visibility="{Binding HasGpuTemp, Converter={StaticResource BoolToVisConverter}}"/>
                     </StackPanel>
                 </Grid>
 
@@ -481,42 +546,56 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Вкладки управления -->
+                    <!-- Вкладки управления (Сегментированный стиль + защита от наезжания) -->
                     <Grid Grid.Row="0" Margin="0,0,0,8">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                            <Button Style="{StaticResource ModeChipButton}" Content="Плеер" Margin="0,0,4,0"
-                                    Background="{Binding ExpandedTab, Converter={StaticResource ModeActiveBrushConverter}, ConverterParameter=Media}"
-                                    Command="{Binding SetExpandedTabCommand}" CommandParameter="Media"/>
-                            <Button Style="{StaticResource ModeChipButton}" Content="Таймер" Margin="0,0,4,0"
-                                    Background="{Binding ExpandedTab, Converter={StaticResource ModeActiveBrushConverter}, ConverterParameter=Timer}"
-                                    Command="{Binding SetExpandedTabCommand}" CommandParameter="Timer"/>
-                            <Button Style="{StaticResource ModeChipButton}" Content="Буфер" Margin="0,0,4,0"
-                                    Background="{Binding ExpandedTab, Converter={StaticResource ModeActiveBrushConverter}, ConverterParameter=Clipboard}"
-                                    Command="{Binding SetExpandedTabCommand}" CommandParameter="Clipboard"/>
-                            <Button Style="{StaticResource ModeChipButton}" Content="Карман файлов" Margin="0,0,4,0"
-                                    Background="{Binding ExpandedTab, Converter={StaticResource ModeActiveBrushConverter}, ConverterParameter=DropZone}"
-                                    Command="{Binding SetExpandedTabCommand}" CommandParameter="DropZone"/>
-                            <Button Style="{StaticResource ModeChipButton}" Content="Док" Margin="0,0,4,0"
-                                    Background="{Binding ExpandedTab, Converter={StaticResource ModeActiveBrushConverter}, ConverterParameter=Apps}"
-                                    Command="{Binding SetExpandedTabCommand}" CommandParameter="Apps"/>
-                            <Button Style="{StaticResource ModeChipButton}" Content="✦ AI Агент" Margin="0,0,4,0"
-                                    Background="{Binding ExpandedTab, Converter={StaticResource ModeActiveBrushConverter}, ConverterParameter=AI}"
-                                    Command="{Binding SetExpandedTabCommand}" CommandParameter="AI"/>
-                        </StackPanel>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
 
-                        <!-- Правые кнопки управления -->
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Button Style="{StaticResource IslandCircleButton}" Width="22" Height="22" Margin="0,0,6,0"
+                        <!-- Сегментированный контейнер вкладок -->
+                        <Border Grid.Column="0" HorizontalAlignment="Left" Background="#121215" BorderBrush="#27272A" BorderThickness="1" CornerRadius="8" Padding="2" Margin="0,0,8,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource SegmentedTabButton}" Content="Плеер"
+                                        Background="{Binding ExpandedTab, Converter={StaticResource SegmentedTabBrushConverter}, ConverterParameter=Media}"
+                                        Foreground="{Binding ExpandedTab, Converter={StaticResource SegmentedTabForegroundConverter}, ConverterParameter=Media}"
+                                        Command="{Binding SetExpandedTabCommand}" CommandParameter="Media"/>
+                                <Button Style="{StaticResource SegmentedTabButton}" Content="Таймер"
+                                        Background="{Binding ExpandedTab, Converter={StaticResource SegmentedTabBrushConverter}, ConverterParameter=Timer}"
+                                        Foreground="{Binding ExpandedTab, Converter={StaticResource SegmentedTabForegroundConverter}, ConverterParameter=Timer}"
+                                        Command="{Binding SetExpandedTabCommand}" CommandParameter="Timer"/>
+                                <Button Style="{StaticResource SegmentedTabButton}" Content="Буфер"
+                                        Background="{Binding ExpandedTab, Converter={StaticResource SegmentedTabBrushConverter}, ConverterParameter=Clipboard}"
+                                        Foreground="{Binding ExpandedTab, Converter={StaticResource SegmentedTabForegroundConverter}, ConverterParameter=Clipboard}"
+                                        Command="{Binding SetExpandedTabCommand}" CommandParameter="Clipboard"/>
+                                <Button Style="{StaticResource SegmentedTabButton}" Content="Карман файлов"
+                                        Background="{Binding ExpandedTab, Converter={StaticResource SegmentedTabBrushConverter}, ConverterParameter=DropZone}"
+                                        Foreground="{Binding ExpandedTab, Converter={StaticResource SegmentedTabForegroundConverter}, ConverterParameter=DropZone}"
+                                        Command="{Binding SetExpandedTabCommand}" CommandParameter="DropZone"/>
+                                <Button Style="{StaticResource SegmentedTabButton}" Content="Док"
+                                        Background="{Binding ExpandedTab, Converter={StaticResource SegmentedTabBrushConverter}, ConverterParameter=Apps}"
+                                        Foreground="{Binding ExpandedTab, Converter={StaticResource SegmentedTabForegroundConverter}, ConverterParameter=Apps}"
+                                        Command="{Binding SetExpandedTabCommand}" CommandParameter="Apps"/>
+                                <Button Style="{StaticResource SegmentedTabButton}" Content="✦ AI Агент"
+                                        Background="{Binding ExpandedTab, Converter={StaticResource SegmentedTabBrushConverter}, ConverterParameter=AI}"
+                                        Foreground="{Binding ExpandedTab, Converter={StaticResource SegmentedTabForegroundConverter}, ConverterParameter=AI}"
+                                        Command="{Binding SetExpandedTabCommand}" CommandParameter="AI"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Правые кнопки управления (аккуратный правый док) -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Button Style="{StaticResource IslandCircleButton}" Width="24" Height="24" Margin="0,0,5,0"
                                     Command="{Binding MinimizeToBarCommand}" ToolTip="Скрыть в полоску">
-                                <Path Data="M4 12l8-8 8 8" Stroke="#A0A0A0" StrokeThickness="2" Stretch="Uniform" Width="9" Height="9"/>
+                                <Path Data="M4 12l8-8 8 8" Stroke="#A1A1AA" StrokeThickness="2" Stretch="Uniform" Width="9" Height="9"/>
                             </Button>
-                            <Button Style="{StaticResource IslandCircleButton}" Width="22" Height="22" Margin="0,0,6,0"
+                            <Button Style="{StaticResource IslandCircleButton}" Width="24" Height="24" Margin="0,0,5,0"
                                     Command="{Binding ToggleClickThroughCommand}" ToolTip="Режим клика насквозь (Ctrl+Shift+I)">
                                 <Path Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14h2v2h-2v-2zm0-10h2v8h-2V6z"
-                                      Fill="{Binding IsClickThrough, Converter={x:Null}}" Stretch="Uniform" Width="10" Height="10">
+                                      Stretch="Uniform" Width="10" Height="10">
                                     <Path.Style>
                                         <Style TargetType="Path">
-                                            <Setter Property="Fill" Value="#8E8E93"/>
+                                            <Setter Property="Fill" Value="#71717A"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsClickThrough}" Value="True">
                                                     <Setter Property="Fill" Value="#FF9500"/>
@@ -526,29 +605,31 @@
                                     </Path.Style>
                                 </Path>
                             </Button>
-                            <Button Style="{StaticResource IslandCircleButton}" Width="22" Height="22"
-                                    Command="{Binding CollapseCommand}">
+                            <Button Style="{StaticResource IslandCircleButton}" Width="24" Height="24"
+                                    Command="{Binding CollapseCommand}" ToolTip="Свернуть остров">
                                 <Path Data="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" 
-                                      Fill="#A0A0A0" Stretch="Uniform" Width="10" Height="10"/>
+                                      Fill="#A1A1AA" Stretch="Uniform" Width="10" Height="10"/>
                             </Button>
                         </StackPanel>
                     </Grid>
 
-                    <!-- Строка быстрого калькулятора / Spotlight -->
-                    <Border Grid.Row="1" Background="{Binding ThemeSubContainerBrush}" BorderBrush="{Binding ThemeBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="8,4" Margin="0,0,0,8">
-                        <Grid>
+                    <!-- Строка быстрого поиска / калькулятора (Spotlight) -->
+                    <Border Grid.Row="1" Height="32" Background="#18181B" BorderBrush="#27272A" BorderThickness="1" CornerRadius="8" Padding="10,0" Margin="0,0,0,8">
+                        <Grid VerticalAlignment="Center">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <Path Grid.Column="0" Data="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
-                                  Fill="#666666" Stretch="Uniform" Width="12" Height="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                  Fill="#71717A" Stretch="Uniform" Width="12" Height="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
                             <TextBox Grid.Column="1" Text="{Binding CalcQuery, UpdateSourceTrigger=PropertyChanged}"
-                                     Background="Transparent" Foreground="{Binding ThemeForegroundBrush}" BorderThickness="0" FontSize="11"
+                                     Background="Transparent" Foreground="#F4F4F5" BorderThickness="0" FontSize="11"
                                      VerticalAlignment="Center"/>
-                            <Button Grid.Column="2" Content="{Binding CalcResult}" Style="{StaticResource ModeChipButton}"
-                                    Background="#30D158" Foreground="#000000" FontSize="10" Padding="6,2"
+                            <!-- Аккуратный чип результата без яркого светофора -->
+                            <Button Grid.Column="2" Content="{Binding CalcResult, StringFormat='= {0}'}"
+                                    Style="{StaticResource ModeChipButton}"
+                                    Background="#27272A" Foreground="#30D158" FontSize="10" Padding="8,3"
                                     Command="{Binding CopyCalcResultCommand}" ToolTip="Кликните, чтобы скопировать ответ"
                                     Visibility="{Binding CalcResult, Converter={StaticResource NullToVisibilityConverter}}"/>
                         </Grid>
@@ -570,43 +651,87 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="64"/>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="130"/>
                         </Grid.ColumnDefinitions>
 
-                        <Border Grid.Column="0" Width="64" Height="64" CornerRadius="12" ClipToBounds="True" Background="{Binding ThemeControlBackgroundBrush}" BorderBrush="{Binding ThemeBorderBrush}" BorderThickness="1" VerticalAlignment="Center">
-                            <Grid>
-                                <Image Source="{Binding TrackThumbnail}" Stretch="UniformToFill"
-                                       Visibility="{Binding TrackThumbnail, Converter={StaticResource NullToVisibilityConverter}}"/>
-                                <Path Visibility="{Binding TrackThumbnail, Converter={StaticResource NotNullToVisibilityConverter}}"
-                                      Data="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
-                                      Fill="#505054" Stretch="Uniform" Width="24" Height="24"/>
-                            </Grid>
-                        </Border>
+                        <!-- Обложка с мягким Ambient Glow -->
+                        <Grid Grid.Column="0" Width="64" Height="64" VerticalAlignment="Center">
+                            <!-- Ambient Glow свечение под обложкой -->
+                            <Ellipse Width="100" Height="100" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                     IsHitTestVisible="False" Opacity="0.30">
+                                <Ellipse.Fill>
+                                    <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.5" RadiusY="0.5">
+                                        <GradientStop Color="{Binding AmbientGlowColor}" Offset="0.0"/>
+                                        <GradientStop Color="#00000000" Offset="1.0"/>
+                                    </RadialGradientBrush>
+                                </Ellipse.Fill>
+                            </Ellipse>
 
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,8,0">
+                            <Border Width="64" Height="64" CornerRadius="12" ClipToBounds="True" Background="#18181B" BorderBrush="#27272A" BorderThickness="1">
+                                <Grid>
+                                    <Image Source="{Binding TrackThumbnail}" Stretch="UniformToFill"
+                                           Visibility="{Binding TrackThumbnail, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                    <Path Visibility="{Binding TrackThumbnail, Converter={StaticResource NotNullToVisibilityConverter}}"
+                                          Data="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
+                                          Fill="#71717A" Stretch="Uniform" Width="24" Height="24"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,10,0">
                             <TextBlock Text="{Binding TrackTitle}" Foreground="{Binding ThemeForegroundBrush}" FontSize="13" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
-                            <TextBlock Text="{Binding TrackArtist}" Foreground="{Binding ThemeSecondaryForegroundBrush}" FontSize="11" Margin="0,2,0,8" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding TrackArtist}" Foreground="{Binding ThemeSecondaryForegroundBrush}" FontSize="11" Margin="0,1,0,5" TextTrimming="CharacterEllipsis"/>
 
+                            <!-- Тонкий интерактивный прогресс-бар трека с таймингами (01:24 / 03:45) -->
+                            <Grid Margin="0,0,0,6">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <ProgressBar Grid.Row="0" Value="{Binding TrackProgress}" Maximum="1.0" Height="3"
+                                             Background="#26FFFFFF" Foreground="#F4F4F5" BorderThickness="0" Margin="0,0,0,3"/>
+                                <DockPanel Grid.Row="1">
+                                    <TextBlock Text="{Binding TrackPositionFormatted}" Foreground="#A1A1AA" FontSize="9" FontFamily="Consolas, Cascadia Code"/>
+                                    <TextBlock Text="{Binding TrackDurationFormatted}" Foreground="#A1A1AA" FontSize="9" FontFamily="Consolas, Cascadia Code" HorizontalAlignment="Right"/>
+                                </DockPanel>
+                            </Grid>
+
+                            <!-- Кнопки управления (Белая Play/Pause кнопка в стиле Spotify/Apple Music) -->
                             <StackPanel Orientation="Horizontal">
-                                <Button Style="{StaticResource IslandCircleButton}" Width="30" Height="30" Margin="0,0,6,0" Command="{Binding SkipPreviousCommand}">
-                                    <Path Data="M6 6h2v12H6zm3.5 6l8.5 6V6z" Fill="{Binding ThemeForegroundBrush}" Stretch="Uniform" Width="12" Height="12"/>
+                                <Button Style="{StaticResource IslandCircleButton}" Width="28" Height="28" Margin="0,0,6,0" Command="{Binding SkipPreviousCommand}">
+                                    <Path Data="M6 6h2v12H6zm3.5 6l8.5 6V6z" Fill="{Binding ThemeForegroundBrush}" Stretch="Uniform" Width="11" Height="11"/>
                                 </Button>
-                                <Button Style="{StaticResource IslandCircleButton}" Width="34" Height="34" Margin="0,0,6,0" Background="#30D158" Command="{Binding TogglePlayPauseCommand}">
+                                <Button Width="32" Height="32" Margin="0,0,6,0" Command="{Binding TogglePlayPauseCommand}">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="playBg" Background="#FFFFFF" CornerRadius="16" Width="32" Height="32">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="playBg" Property="Background" Value="#E5E5E5"/>
+                                                </Trigger>
+                                                <Trigger Property="IsPressed" Value="True">
+                                                    <Setter TargetName="playBg" Property="Background" Value="#D4D4D4"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
                                     <Grid>
                                         <Path Visibility="{Binding IsMediaPlaying, Converter={StaticResource BoolToVisConverter}}"
-                                              Data="M6 19h4V5H6v14zm8-14v14h4V5h-4z" Fill="#000000" Stretch="Uniform" Width="13" Height="13"/>
+                                              Data="M6 19h4V5H6v14zm8-14v14h4V5h-4z" Fill="#000000" Stretch="Uniform" Width="12" Height="12"/>
                                         <Path Visibility="{Binding IsMediaPlaying, Converter={StaticResource BoolToVisInvertedConverter}}"
-                                              Data="M8 5v14l11-7z" Fill="#000000" Stretch="Uniform" Width="13" Height="13" Margin="1,0,0,0"/>
+                                              Data="M8 5v14l11-7z" Fill="#000000" Stretch="Uniform" Width="12" Height="12" Margin="1,0,0,0"/>
                                     </Grid>
                                 </Button>
-                                <Button Style="{StaticResource IslandCircleButton}" Width="30" Height="30" Command="{Binding SkipNextCommand}">
-                                    <Path Data="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" Fill="{Binding ThemeForegroundBrush}" Stretch="Uniform" Width="12" Height="12"/>
+                                <Button Style="{StaticResource IslandCircleButton}" Width="28" Height="28" Command="{Binding SkipNextCommand}">
+                                    <Path Data="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" Fill="{Binding ThemeForegroundBrush}" Stretch="Uniform" Width="11" Height="11"/>
                                 </Button>
                             </StackPanel>
                         </StackPanel>
 
-                        <!-- Монитор оборудования -->
-                        <Border Grid.Column="2" Background="{Binding ThemeSubContainerBrush}" BorderBrush="{Binding ThemeBorderBrush}" BorderThickness="1" CornerRadius="10" Padding="8,8" VerticalAlignment="Center">
+                        <!-- Монитор оборудования (легкая подложка #141414, моноширинный шрифт, скрытие 0°) -->
+                        <Border Grid.Column="2" Background="#141414" BorderBrush="#27272A" BorderThickness="1" CornerRadius="10" Padding="8,8" VerticalAlignment="Center">
                             <StackPanel>
                                 <Grid Margin="0,0,0,4">
                                     <Grid.ColumnDefinitions>
@@ -615,8 +740,9 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="CPU" Foreground="#0A84FF" FontSize="10" FontWeight="Bold"/>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                                        <TextBlock Text="{Binding CpuUsage, StringFormat={}{0:F0}%}" Foreground="#FFFFFF" FontSize="10" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{Binding CpuTemp, StringFormat={} {0:F0}°}" Foreground="#FF9F0A" FontSize="9" Margin="3,0,0,0"/>
+                                        <TextBlock Text="{Binding CpuUsage, StringFormat={}{0:F0}%}" Foreground="#F4F4F5" FontSize="10" FontWeight="SemiBold" FontFamily="Consolas, Cascadia Code"/>
+                                        <TextBlock Text="{Binding CpuTemp, StringFormat={} {0:F0}°}" Foreground="#FF9F0A" FontSize="9" Margin="3,0,0,0" FontFamily="Consolas, Cascadia Code"
+                                                   Visibility="{Binding HasCpuTemp, Converter={StaticResource BoolToVisConverter}}"/>
                                     </StackPanel>
                                 </Grid>
                                 <ProgressBar Value="{Binding CpuUsage}" Maximum="100" Height="3" Background="#26FFFFFF" Foreground="#0A84FF" BorderThickness="0"/>
@@ -628,8 +754,9 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="GPU" Foreground="#30D158" FontSize="10" FontWeight="Bold"/>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                                        <TextBlock Text="{Binding GpuUsage, StringFormat={}{0:F0}%}" Foreground="#FFFFFF" FontSize="10" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{Binding GpuTemp, StringFormat={} {0:F0}°}" Foreground="#FF453A" FontSize="9" Margin="3,0,0,0"/>
+                                        <TextBlock Text="{Binding GpuUsage, StringFormat={}{0:F0}%}" Foreground="#F4F4F5" FontSize="10" FontWeight="SemiBold" FontFamily="Consolas, Cascadia Code"/>
+                                        <TextBlock Text="{Binding GpuTemp, StringFormat={} {0:F0}°}" Foreground="#FF453A" FontSize="9" Margin="3,0,0,0" FontFamily="Consolas, Cascadia Code"
+                                                   Visibility="{Binding HasGpuTemp, Converter={StaticResource BoolToVisConverter}}"/>
                                     </StackPanel>
                                 </Grid>
                                 <ProgressBar Value="{Binding GpuUsage}" Maximum="100" Height="3" Background="#26FFFFFF" Foreground="#30D158" BorderThickness="0"/>
@@ -958,78 +1085,81 @@
                     </Grid>
 
 
-                    <!-- Нижний статус-бар: звуки, автозапуск и погода -->
+                    <!-- Нижний статус-бар: унифицированный стиль без «светофора» -->
                     <Grid Grid.Row="3" Margin="0,10,0,0">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <!-- Погода (интерактивный чип с выбором города) -->
-                            <Button Style="{StaticResource ModeChipButton}"
-                                    Background="#22FFFFFF"
-                                    Command="{Binding ToggleCityPickerCommand}"
-                                    ToolTip="{Binding WeatherFullTooltip}"
-                                    Padding="8,3" Margin="0,0,6,0">
-                                <StackPanel Orientation="Horizontal">
-                                    <Path Data="{Binding WeatherIcon}" Fill="#FFD60A" Stretch="Uniform" Width="11" Height="11" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="{Binding WeatherCityAndTemp}" Foreground="#FFFFFF" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <!-- Слева: только погода -->
+                        <Button HorizontalAlignment="Left" VerticalAlignment="Center"
+                                Style="{StaticResource BottomDockButton}"
+                                Command="{Binding ToggleCityPickerCommand}"
+                                ToolTip="{Binding WeatherFullTooltip}">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{Binding WeatherIcon}" Fill="#FFD60A" Stretch="Uniform" Width="11" Height="11" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding WeatherCityAndTemp}" Foreground="#F4F4F5" FontSize="10" FontWeight="Medium" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Справа: унифицированные кнопки с тултипами и светящимися индикаторами -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <!-- Звук со светящейся точкой статуса -->
+                            <Button Style="{StaticResource BottomDockButton}"
+                                    Command="{Binding ToggleSoundCommand}"
+                                    ToolTip="{Binding SoundStatusText}">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Path Data="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"
+                                          Fill="#A1A1AA" Stretch="Uniform" Width="11" Height="11" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <Ellipse Width="6" Height="6" VerticalAlignment="Center">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="#52525B"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSoundEnabled}" Value="True">
+                                                        <Setter Property="Fill" Value="#30D158"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
                                 </StackPanel>
                             </Button>
 
-                            <!-- Звук On/Off -->
-                            <Button Content="{Binding SoundStatusText}"
-                                    Command="{Binding ToggleSoundCommand}"
-                                    Padding="8,3" FontSize="10" Margin="0,0,6,0">
-                                <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource ModeChipButton}">
-                                        <Setter Property="Background" Value="#22FFFFFF"/>
-                                        <Setter Property="Foreground" Value="#8E8E93"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsSoundEnabled}" Value="True">
-                                                <Setter Property="Background" Value="#2A0A84FF"/>
-                                                <Setter Property="Foreground" Value="#0A84FF"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
-
-                            <!-- Автозапуск -->
-                            <Button Content="{Binding AutoStartStatusText}"
+                            <!-- Автозапуск со светящейся точкой статуса -->
+                            <Button Style="{StaticResource BottomDockButton}"
                                     Command="{Binding ToggleAutoStartCommand}"
-                                    Padding="8,3" FontSize="10" Margin="0,0,6,0">
-                                <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource ModeChipButton}">
-                                        <Setter Property="Background" Value="#22FFFFFF"/>
-                                        <Setter Property="Foreground" Value="#8E8E93"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsAutoStartEnabled}" Value="True">
-                                                <Setter Property="Background" Value="#2A30D158"/>
-                                                <Setter Property="Foreground" Value="#30D158"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
+                                    ToolTip="{Binding AutoStartStatusText}">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Path Data="M12 2.5s3 2.5 3 6.5c0 1.5-.5 3-1.5 4.5l1.5 3.5-3-1.5-3 1.5 1.5-3.5C9.5 12 9 10.5 9 9c0-4 3-6.5 3-6.5z"
+                                          Fill="#A1A1AA" Stretch="Uniform" Width="11" Height="11" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <Ellipse Width="6" Height="6" VerticalAlignment="Center">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="#52525B"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsAutoStartEnabled}" Value="True">
+                                                        <Setter Property="Fill" Value="#30D158"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
+                                </StackPanel>
                             </Button>
 
-                            <!-- Оформление и волны -->
-                            <Button Content="{Binding ThemeDisplayShortName}"
+                            <!-- Оформление / Тема -->
+                            <Button Style="{StaticResource BottomDockIconButton}"
                                     Command="{Binding ToggleThemePickerCommand}"
-                                    ToolTip="Выбор оформления (Тёмная, Светлая, Жидкое стекло) и анимации ряби воды"
-                                    Padding="8,3" FontSize="10" Margin="0,0,6,0">
-                                <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource ModeChipButton}">
-                                        <Setter Property="Background" Value="#22FFFFFF"/>
-                                        <Setter Property="Foreground" Value="#00E5FF"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsDarkTheme}" Value="False">
-                                                <Setter Property="Background" Value="#22000000"/>
-                                                <Setter Property="Foreground" Value="#0A84FF"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
+                                    ToolTip="Оформление и темы острова">
+                                <Path Data="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"
+                                      Fill="#A1A1AA" Stretch="Uniform" Width="11" Height="11" VerticalAlignment="Center"/>
+                            </Button>
+
+                            <!-- Закрыть остров -->
+                            <Button Style="{StaticResource BottomDockIconButton}"
+                                    Command="{Binding CloseAppCommand}"
+                                    ToolTip="Закрыть остров" Margin="0">
+                                <Path Data="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                                      Fill="#71717A" Stretch="Uniform" Width="9" Height="9" VerticalAlignment="Center"/>
                             </Button>
                         </StackPanel>
-
-                        <Button HorizontalAlignment="Right" Content="Закрыть остров" Background="Transparent" Foreground="#FF453A" BorderThickness="0" FontSize="9" Cursor="Hand" Command="{Binding CloseAppCommand}"/>
                     </Grid>
                 </Grid>
 
