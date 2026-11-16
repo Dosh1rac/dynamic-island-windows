@@ -79,20 +79,20 @@ namespace DynamicIsland.Services
             }
         }
 
-        // Раскрытие острова: короткий мягкий тактильный импульс вверх (3rdParty_DirectionUp_Haptic)
-        public void PlayExpand() => PlaySound(_expandSound, 1.0f);
+        // Раскрытие острова: мягкий тактильный микро-импульс (<120 мс, Material navigation_forward-selection)
+        public void PlayExpand() => PlaySound(_expandSound, 0.18f);
 
-        // Сворачивание острова: короткий мягкий тактильный импульс вниз (3rdParty_DirectionDown_Haptic)
-        public void PlayCollapse() => PlaySound(_collapseSound, 1.0f);
+        // Сворачивание острова: мягкий тактильный микро-импульс (<125 мс, Material navigation_backward-selection)
+        public void PlayCollapse() => PlaySound(_collapseSound, 0.18f);
 
-        // Клик по табам и кнопкам: тихий глухой тактильный клик клавиатуры iPhone (Tock.caf)
-        public void PlayTap() => PlaySound(_tapSound, 1.0f);
+        // Клик по табам и кнопкам: еле слышный бархатный отклик (60 мс, Material ui_tap-simple)
+        public void PlayTap() => PlaySound(_tapSound, 0.12f);
 
-        // Завершение таймера / уведомление: мягкий хрустальный аккорд Apple Pay (payment_success.caf)
-        public void PlayChime() => PlaySound(_chimeSound, 1.0f);
+        // Завершение таймера / уведомление: мягкий ненавязчивый аккорд (Material notification_simple-01)
+        public void PlayChime() => PlaySound(_chimeSound, 0.30f);
 
-        // Сброс файлов в карман: тактильный звук отправки AirDrop (SentMessage.caf)
-        public void PlayDrop() => PlaySound(_dropSound, 1.0f);
+        // Сброс файлов в карман: мягкий короткий отклик (<90 мс)
+        public void PlayDrop() => PlaySound(_dropSound, 0.18f);
 
         // Псевдонимы обратной совместимости
         public void PlayPop() => PlayTap();
