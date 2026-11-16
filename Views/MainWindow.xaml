@@ -33,6 +33,49 @@
         <helpers:CornerRadiusConverter x:Key="CornerRadiusConverter"/>
         <BooleanToVisibilityConverter x:Key="BoolToVisConverter"/>
 
+        <!-- Современный тонкий скроллбар в стиле iOS/macOS -->
+        <Style x:Key="ModernMinimalScrollBar" TargetType="{x:Type ScrollBar}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Width" Value="5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ScrollBar}">
+                        <Grid x:Name="Bg" Background="Transparent" SnapsToDevicePixels="True">
+                            <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" Focusable="False" Opacity="0" Background="Transparent" BorderThickness="0"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="{x:Type Thumb}">
+                                                <Border x:Name="ThumbBorder"
+                                                        Background="#508E8E93"
+                                                        CornerRadius="2.5"
+                                                        Margin="0,2"/>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="ThumbBorder" Property="Background" Value="#A000E5FF"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsDragging" Value="True">
+                                                        <Setter TargetName="ThumbBorder" Property="Background" Value="#FF0A84FF"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" Focusable="False" Opacity="0" Background="Transparent" BorderThickness="0"/>
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Круглые кнопки управления -->
         <Style x:Key="IslandCircleButton" TargetType="Button">
             <Setter Property="Background" Value="#22FFFFFF"/>
@@ -121,8 +164,9 @@
                 Width="{Binding IslandWidth}"
                 Height="{Binding IslandHeight}"
                 CornerRadius="{Binding CapsuleCornerRadius, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource CornerRadiusConverter}}"
-                Background="#000000"
-                BorderThickness="0"
+                Background="{Binding CapsuleBackgroundBrush}"
+                BorderBrush="{Binding CapsuleBorderBrush}"
+                BorderThickness="{Binding CapsuleBorderThickness}"
                 ClipToBounds="True"
                 Cursor="Hand"
                 RenderTransformOrigin="0.5, 0.0"
@@ -135,10 +179,47 @@
                 <TransformGroup>
                     <ScaleTransform x:Name="CapsuleScale" ScaleX="1.0" ScaleY="1.0"/>
                     <TranslateTransform x:Name="CapsuleTranslate" Y="0.0"/>
+                    <TranslateTransform x:Name="LiquidBuoyancyTranslate" Y="0.0"/>
                 </TransformGroup>
             </Border.RenderTransform>
 
             <Grid>
+                <!-- ================= СЛОЙ ЖИДКИХ ВОЛН И ПРЕЛОМЛЕНИЯ ================= -->
+                <Grid IsHitTestVisible="False" ClipToBounds="True">
+                    <!-- Верхнее оптическое преломление линзы (Lens Meniscus) -->
+                    <Border VerticalAlignment="Top" Height="14" Opacity="0.55"
+                            CornerRadius="{Binding CapsuleCornerRadius, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource CornerRadiusConverter}}">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                <GradientStop Color="#65FFFFFF" Offset="0.0"/>
+                                <GradientStop Color="#00FFFFFF" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+
+                    <!-- Бегущая жидкая рябь / каустическая световая волна -->
+                    <Rectangle x:Name="WaveShimmerRect" Width="950" Height="550" HorizontalAlignment="Left" VerticalAlignment="Top"
+                               Opacity="0.45" RenderTransformOrigin="0.5,0.5"
+                               Visibility="{Binding EnableLiquidWaves, Converter={StaticResource BoolToVisConverter}}">
+                        <Rectangle.RenderTransform>
+                            <TransformGroup>
+                                <TranslateTransform x:Name="WaveTranslate" X="-380" Y="-90"/>
+                                <RotateTransform Angle="-22"/>
+                            </TransformGroup>
+                        </Rectangle.RenderTransform>
+                        <Rectangle.Fill>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#00000000" Offset="0.0"/>
+                                <GradientStop Color="#00000000" Offset="0.38"/>
+                                <GradientStop Color="#3000E5FF" Offset="0.47"/>
+                                <GradientStop Color="#65FFFFFF" Offset="0.50"/>
+                                <GradientStop Color="#30BF5AF2" Offset="0.53"/>
+                                <GradientStop Color="#00000000" Offset="0.62"/>
+                                <GradientStop Color="#00000000" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Rectangle.Fill>
+                    </Rectangle>
+                </Grid>
                 <!-- ================= 0. СВЕРНУТАЯ МИНИ-ПОЛОСКА ================= -->
                 <Border x:Name="MinimizedBarContent" Width="36" Height="3" Background="#77FFFFFF" CornerRadius="1.5"
                         HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
@@ -749,8 +830,16 @@
                         </DockPanel>
 
                         <!-- Область сообщений чата -->
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                                      Margin="0,0,0,8" Height="275">
+                        <ScrollViewer x:Name="AgentChatScrollViewer"
+                                      Grid.Row="1"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Margin="0,0,0,8"
+                                      Height="275"
+                                      PreviewMouseWheel="AgentChatScrollViewer_PreviewMouseWheel">
+                            <ScrollViewer.Resources>
+                                <Style TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource ModernMinimalScrollBar}"/>
+                            </ScrollViewer.Resources>
                             <ItemsControl ItemsSource="{Binding ChatMessages}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -889,6 +978,25 @@
                                     </Style>
                                 </Button.Style>
                             </Button>
+
+                            <!-- Оформление и волны -->
+                            <Button Content="{Binding ThemeDisplayShortName}"
+                                    Command="{Binding ToggleThemePickerCommand}"
+                                    ToolTip="Выбор оформления (Тёмная, Светлая, Жидкое стекло) и анимации ряби воды"
+                                    Padding="8,3" FontSize="10" Margin="0,0,6,0">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource ModeChipButton}">
+                                        <Setter Property="Background" Value="#22FFFFFF"/>
+                                        <Setter Property="Foreground" Value="#00E5FF"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsDarkTheme}" Value="False">
+                                                <Setter Property="Background" Value="#22000000"/>
+                                                <Setter Property="Foreground" Value="#0A84FF"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                         </StackPanel>
 
                         <Button HorizontalAlignment="Right" Content="Закрыть остров" Background="Transparent" Foreground="#FF453A" BorderThickness="0" FontSize="9" Cursor="Hand" Command="{Binding CloseAppCommand}"/>
@@ -1022,6 +1130,98 @@
                         <Button Grid.Row="3" Content="Сохранить настройки" Style="{StaticResource ModeChipButton}"
                                 Background="#30D158" Foreground="#000000" FontWeight="Bold" HorizontalAlignment="Right"
                                 Padding="12,5" Margin="0,4,0,0" Command="{Binding SaveAiSettingsCommand}"/>
+                    </Grid>
+                </Border>
+
+                <!-- Окно выбора оформления и жидкого стекла (Overlay) -->
+                <Border Visibility="{Binding IsThemePickerOpen, Converter={StaticResource BoolToVisConverter}}"
+                        Background="#F5141416" CornerRadius="18" BorderBrush="#30FFFFFF" BorderThickness="1"
+                        Margin="8" Padding="14,12" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+                        Panel.ZIndex="70">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Заголовок и закрытие -->
+                        <DockPanel Grid.Row="0" Margin="0,0,0,10">
+                            <TextBlock Text="🎨 Оформление и физика жидкого стекла" Foreground="#FFFFFF" FontSize="11.5" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <Button Content="✕" Style="{StaticResource ModeChipButton}" HorizontalAlignment="Right" Padding="6,2" FontSize="9"
+                                    Command="{Binding CloseThemePickerCommand}"/>
+                        </DockPanel>
+
+                        <!-- 4 Кнопки выбора темы -->
+                        <UniformGrid Grid.Row="1" Columns="2" Margin="0,0,0,10">
+                            <Button Style="{StaticResource ModeChipButton}" Margin="0,0,4,6" Padding="10,8"
+                                    Background="#252528" HorizontalContentAlignment="Left"
+                                    Command="{Binding SetThemeCommand}" CommandParameter="GlassDark">
+                                <StackPanel>
+                                    <TextBlock Text="💎 Жидкое стекло (Тьма)" Foreground="#00E5FF" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="Полупрозрачный темный глянец с преломлением граней" Foreground="#8E8E93" FontSize="9" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Style="{StaticResource ModeChipButton}" Margin="4,0,0,6" Padding="10,8"
+                                    Background="#252528" HorizontalContentAlignment="Left"
+                                    Command="{Binding SetThemeCommand}" CommandParameter="GlassLight">
+                                <StackPanel>
+                                    <TextBlock Text="🌊 Жидкое стекло (Свет)" Foreground="#64D2FF" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="Морозный прозрачный лед с призматическими бликами" Foreground="#8E8E93" FontSize="9" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Style="{StaticResource ModeChipButton}" Margin="0,0,4,0" Padding="10,8"
+                                    Background="#252528" HorizontalContentAlignment="Left"
+                                    Command="{Binding SetThemeCommand}" CommandParameter="Dark">
+                                <StackPanel>
+                                    <TextBlock Text="🌑 Тёмная (OLED)" Foreground="#FFFFFF" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="Глубокий чёрный цвет в стиле оригинального iPhone" Foreground="#8E8E93" FontSize="9" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Style="{StaticResource ModeChipButton}" Margin="4,0,0,0" Padding="10,8"
+                                    Background="#252528" HorizontalContentAlignment="Left"
+                                    Command="{Binding SetThemeCommand}" CommandParameter="Light">
+                                <StackPanel>
+                                    <TextBlock Text="☀️ Светлая (Керамика)" Foreground="#FFD60A" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="Минималистичный светлый фарфор с темным текстом" Foreground="#8E8E93" FontSize="9" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Button>
+                        </UniformGrid>
+
+                        <!-- Переключатель ряби воды и дыхания капли -->
+                        <Border Grid.Row="2" Background="#20FFFFFF" CornerRadius="10" Padding="10,8" Margin="0,0,0,8">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                    <TextBlock Text="🌊 Эффект ряби воды и дыхания капли" Foreground="#FFFFFF" FontSize="10.5" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Бегущие каустические волны света и мягкая плавучесть капсулы" Foreground="#8E8E93" FontSize="9" Margin="0,2,0,0"/>
+                                </StackPanel>
+                                <Button DockPanel.Dock="Right"
+                                        Padding="10,4" HorizontalAlignment="Right"
+                                        Command="{Binding ToggleLiquidWavesCommand}">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource ModeChipButton}">
+                                            <Setter Property="Content" Value="Выкл"/>
+                                            <Setter Property="Background" Value="#35FFFFFF"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding EnableLiquidWaves}" Value="True">
+                                                    <Setter Property="Content" Value="Вкл"/>
+                                                    <Setter Property="Background" Value="#30D158"/>
+                                                    <Setter Property="Foreground" Value="#000000"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </DockPanel>
+                        </Border>
+
+                        <!-- Статус текущей темы -->
+                        <TextBlock Grid.Row="3" Text="{Binding ThemeDisplayName, StringFormat='Текущий стиль: {0}'}"
+                                   Foreground="#8E8E93" FontSize="10" VerticalAlignment="Center"/>
                     </Grid>
                 </Border>
             </Grid>

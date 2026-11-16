@@ -2,6 +2,8 @@ using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -9,6 +11,9 @@ using CommunityToolkit.Mvvm.Input;
 using DynamicIsland.Helpers;
 using DynamicIsland.Models;
 using DynamicIsland.Services;
+using Brush = System.Windows.Media.Brush;
+using Brushes = System.Windows.Media.Brushes;
+using Color = System.Windows.Media.Color;
 
 namespace DynamicIsland.ViewModels
 {
@@ -26,6 +31,7 @@ namespace DynamicIsland.ViewModels
         private readonly IWeatherService _weatherService;
         private readonly IAiAgentService _aiAgentService;
         private readonly IVoiceService _voiceService;
+        private readonly IThemeService _themeService;
 
         private readonly DispatcherTimer _hudDismissTimer;
 
@@ -220,6 +226,49 @@ namespace DynamicIsland.ViewModels
         [ObservableProperty]
         private double _islandCornerRadius = 18;
 
+        // ================= ОФОРМЛЕНИЕ И ЖИДКОЕ СТЕКЛО =================
+        [ObservableProperty]
+        private IslandTheme _currentTheme = IslandTheme.LiquidGlassDark;
+
+        [ObservableProperty]
+        private bool _enableLiquidWaves = true;
+
+        [ObservableProperty]
+        private bool _isThemePickerOpen;
+
+        [ObservableProperty]
+        private string _themeDisplayShortName = "🎨 Стекло";
+
+        [ObservableProperty]
+        private string _themeDisplayName = "Жидкое стекло (Тёмное)";
+
+        [ObservableProperty]
+        private Brush _capsuleBackgroundBrush = Brushes.Black;
+
+        [ObservableProperty]
+        private Brush _capsuleBorderBrush = Brushes.Transparent;
+
+        [ObservableProperty]
+        private Thickness _capsuleBorderThickness = new Thickness(1.2);
+
+        [ObservableProperty]
+        private Brush _themeForegroundBrush = Brushes.White;
+
+        [ObservableProperty]
+        private Brush _themeSecondaryForegroundBrush = Brushes.Gray;
+
+        [ObservableProperty]
+        private Brush _themeControlBackgroundBrush = Brushes.DarkGray;
+
+        [ObservableProperty]
+        private Brush _themeSubContainerBrush = Brushes.Black;
+
+        [ObservableProperty]
+        private Brush _themeBorderBrush = Brushes.Gray;
+
+        [ObservableProperty]
+        private bool _isDarkTheme = true;
+
         public event Action<bool>? RequestClickThroughChanged;
 
         public MainViewModel(
@@ -234,7 +283,8 @@ namespace DynamicIsland.ViewModels
             IDropZoneService dropZoneService,
             IWeatherService weatherService,
             IAiAgentService aiAgentService,
-            IVoiceService voiceService)
+            IVoiceService voiceService,
+            IThemeService themeService)
         {
             _cursorTrackerService = cursorTrackerService;
             _mediaService = mediaService;
@@ -248,6 +298,12 @@ namespace DynamicIsland.ViewModels
             _weatherService = weatherService;
             _aiAgentService = aiAgentService;
             _voiceService = voiceService;
+            _themeService = themeService;
+
+            var themeSettings = _themeService.Settings;
+            _currentTheme = themeSettings.Theme;
+            _enableLiquidWaves = themeSettings.EnableLiquidWaves;
+            ApplyTheme(_currentTheme, _enableLiquidWaves, save: false);
 
             var cfg = _aiAgentService.Config;
             AiSettingsBaseUrl = cfg.BaseUrl;
@@ -1059,6 +1115,147 @@ namespace DynamicIsland.ViewModels
         {
             AgentUserInput = prompt;
             await SendAgentMessage();
+        }
+
+        public void ApplyTheme(IslandTheme theme, bool enableWaves, bool save = true)
+        {
+            CurrentTheme = theme;
+            EnableLiquidWaves = enableWaves;
+
+            switch (theme)
+            {
+                case IslandTheme.Dark:
+                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromRgb(0x00, 0x00, 0x00));
+                    CapsuleBorderBrush = new SolidColorBrush(Color.FromArgb(0x35, 0xFF, 0xFF, 0xFF));
+                    CapsuleBorderThickness = new Thickness(1.0);
+                    ThemeForegroundBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0xFF, 0xFF));
+                    ThemeSecondaryForegroundBrush = new SolidColorBrush(Color.FromRgb(0x8E, 0x8E, 0x93));
+                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromRgb(0x25, 0x25, 0x28));
+                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromRgb(0x16, 0x16, 0x18));
+                    ThemeBorderBrush = new SolidColorBrush(Color.FromArgb(0x35, 0xFF, 0xFF, 0xFF));
+                    IsDarkTheme = true;
+                    ThemeDisplayShortName = "🌑 Тёмная";
+                    ThemeDisplayName = "Тёмная (OLED Чёрная)";
+                    break;
+
+                case IslandTheme.Light:
+                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromRgb(0xF5, 0xF5, 0xF7));
+                    CapsuleBorderBrush = new SolidColorBrush(Color.FromArgb(0x35, 0x00, 0x00, 0x00));
+                    CapsuleBorderThickness = new Thickness(1.0);
+                    ThemeForegroundBrush = new SolidColorBrush(Color.FromRgb(0x1C, 0x1C, 0x1E));
+                    ThemeSecondaryForegroundBrush = new SolidColorBrush(Color.FromRgb(0x63, 0x63, 0x66));
+                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromRgb(0xE5, 0xE5, 0xEA));
+                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromRgb(0xEB, 0xEB, 0xF0));
+                    ThemeBorderBrush = new SolidColorBrush(Color.FromArgb(0x20, 0x00, 0x00, 0x00));
+                    IsDarkTheme = false;
+                    ThemeDisplayShortName = "☀️ Светлая";
+                    ThemeDisplayName = "Светлая (Керамика)";
+                    break;
+
+                case IslandTheme.LiquidGlassLight:
+                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromArgb(0xB8, 0xF0, 0xF4, 0xFA));
+                    var lightGlassGrad = new LinearGradientBrush
+                    {
+                        StartPoint = new System.Windows.Point(0, 0),
+                        EndPoint = new System.Windows.Point(0, 1)
+                    };
+                    lightGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0xF0, 0xFF, 0xFF, 0xFF), 0.0));
+                    lightGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x70, 0x90, 0xB0, 0xC8), 0.5));
+                    lightGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x45, 0xFF, 0xFF, 0xFF), 1.0));
+                    CapsuleBorderBrush = lightGlassGrad;
+                    CapsuleBorderThickness = new Thickness(1.2);
+                    ThemeForegroundBrush = new SolidColorBrush(Color.FromRgb(0x1C, 0x1C, 0x1E));
+                    ThemeSecondaryForegroundBrush = new SolidColorBrush(Color.FromRgb(0x55, 0x55, 0x58));
+                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromArgb(0x60, 0xFF, 0xFF, 0xFF));
+                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromArgb(0x35, 0xFF, 0xFF, 0xFF));
+                    ThemeBorderBrush = new SolidColorBrush(Color.FromArgb(0x35, 0x80, 0x98, 0xB0));
+                    IsDarkTheme = false;
+                    ThemeDisplayShortName = "🌊 Стекло (Свет)";
+                    ThemeDisplayName = "Жидкое стекло (Светлое)";
+                    break;
+
+                case IslandTheme.LiquidGlassDark:
+                default:
+                    CapsuleBackgroundBrush = new SolidColorBrush(Color.FromArgb(0xCC, 0x0A, 0x0B, 0x12));
+                    var darkGlassGrad = new LinearGradientBrush
+                    {
+                        StartPoint = new System.Windows.Point(0, 0),
+                        EndPoint = new System.Windows.Point(0, 1)
+                    };
+                    darkGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x95, 0xFF, 0xFF, 0xFF), 0.0));
+                    darkGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x35, 0x00, 0xE5, 0xFF), 0.35));
+                    darkGlassGrad.GradientStops.Add(new GradientStop(Color.FromArgb(0x20, 0xFF, 0xFF, 0xFF), 1.0));
+                    CapsuleBorderBrush = darkGlassGrad;
+                    CapsuleBorderThickness = new Thickness(1.2);
+                    ThemeForegroundBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0xFF, 0xFF));
+                    ThemeSecondaryForegroundBrush = new SolidColorBrush(Color.FromRgb(0x9E, 0x9E, 0xA5));
+                    ThemeControlBackgroundBrush = new SolidColorBrush(Color.FromArgb(0x2E, 0xFF, 0xFF, 0xFF));
+                    ThemeSubContainerBrush = new SolidColorBrush(Color.FromArgb(0x25, 0x00, 0x00, 0x00));
+                    ThemeBorderBrush = new SolidColorBrush(Color.FromArgb(0x28, 0xFF, 0xFF, 0xFF));
+                    IsDarkTheme = true;
+                    ThemeDisplayShortName = "💎 Стекло (Тьма)";
+                    ThemeDisplayName = "Жидкое стекло (Тёмное)";
+                    break;
+            }
+
+            if (save)
+            {
+                _themeService.SaveSettings(new IslandSettings
+                {
+                    Theme = CurrentTheme,
+                    EnableLiquidWaves = EnableLiquidWaves
+                });
+            }
+        }
+
+        [RelayCommand]
+        public void CycleTheme()
+        {
+            var nextTheme = CurrentTheme switch
+            {
+                IslandTheme.LiquidGlassDark => IslandTheme.LiquidGlassLight,
+                IslandTheme.LiquidGlassLight => IslandTheme.Dark,
+                IslandTheme.Dark => IslandTheme.Light,
+                IslandTheme.Light => IslandTheme.LiquidGlassDark,
+                _ => IslandTheme.LiquidGlassDark
+            };
+            ApplyTheme(nextTheme, EnableLiquidWaves);
+        }
+
+        [RelayCommand]
+        public void SetTheme(string themeName)
+        {
+            var theme = themeName switch
+            {
+                "Dark" => IslandTheme.Dark,
+                "Light" => IslandTheme.Light,
+                "GlassLight" => IslandTheme.LiquidGlassLight,
+                "GlassDark" or _ => IslandTheme.LiquidGlassDark
+            };
+            ApplyTheme(theme, EnableLiquidWaves);
+        }
+
+        [RelayCommand]
+        public void ToggleLiquidWaves()
+        {
+            ApplyTheme(CurrentTheme, !EnableLiquidWaves);
+        }
+
+        [RelayCommand]
+        public void ToggleThemePicker()
+        {
+            IsThemePickerOpen = !IsThemePickerOpen;
+            if (IsThemePickerOpen)
+            {
+                IsCityPickerOpen = false;
+                IsAiSettingsOpen = false;
+            }
+        }
+
+        [RelayCommand]
+        public void CloseThemePicker()
+        {
+            IsThemePickerOpen = false;
         }
 
         public void UpdateScreenPosition(double screenCenterX, double screenTopY)

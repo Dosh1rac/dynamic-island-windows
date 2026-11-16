@@ -62,6 +62,7 @@ namespace DynamicIsland
                 var computerControl = new ComputerControlService();
                 var aiAgentService = new AiAgentService(computerControl);
                 var voiceService = new VoiceService();
+                var themeService = new ThemeService();
 
                 var viewModel = new MainViewModel(
                     cursorTracker,
@@ -75,7 +76,8 @@ namespace DynamicIsland
                     dropZoneService,
                     weatherService,
                     aiAgentService,
-                    voiceService
+                    voiceService,
+                    themeService
                 );
 
                 var mainWindow = new MainWindow(

@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -97,12 +99,30 @@ namespace DynamicIsland.Views
                     _viewModel.ExpandIsland();
                     _viewModel.IsCityPickerOpen = true;
                 }),
+                onPickTheme: () => Dispatcher.Invoke(() =>
+                {
+                    _viewModel.ExpandIsland();
+                    _viewModel.IsThemePickerOpen = true;
+                }),
                 onExit: () => Dispatcher.Invoke(() => App.Current?.Shutdown())
             );
 
             double centerX = Left + (Width / 2);
             double centerY = Top + 36;
             _viewModel.UpdateScreenPosition(centerX, centerY);
+
+            ((INotifyCollectionChanged)_viewModel.ChatMessages).CollectionChanged += (s, ev) =>
+            {
+                if (ev.Action == NotifyCollectionChangedAction.Add)
+                {
+                    Dispatcher.InvokeAsync(() =>
+                    {
+                        AgentChatScrollViewer?.ScrollToEnd();
+                    }, System.Windows.Threading.DispatcherPriority.Loaded);
+                }
+            };
+
+            StartLiquidAnimations();
 
             UpdateContentVisibility(immediate: true);
             App.Log("MainWindow Window_Loaded finish.");
@@ -118,6 +138,10 @@ namespace DynamicIsland.Views
                 e.PropertyName == nameof(MainViewModel.IslandHeight))
             {
                 Dispatcher.InvokeAsync(AnimateCapsuleState);
+            }
+            else if (e.PropertyName == nameof(MainViewModel.EnableLiquidWaves))
+            {
+                Dispatcher.InvokeAsync(StartLiquidAnimations);
             }
         }
 
@@ -416,6 +440,12 @@ namespace DynamicIsland.Views
 
         private void IslandCapsule_MouseWheel(object sender, MouseWheelEventArgs e)
         {
+            // В раскрытом режиме колесо мыши используется для скролла списков (чат, буфер, файлы)
+            if (_viewModel.CurrentState == IslandState.Expanded)
+            {
+                return;
+            }
+
             if (e.Delta > 0 && _viewModel.CurrentState != IslandState.Minimized)
             {
                 _lastMinimizedTime = DateTime.UtcNow;
@@ -426,6 +456,58 @@ namespace DynamicIsland.Views
             {
                 _viewModel.RestoreFromMinimizedCommand.Execute(null);
                 e.Handled = true;
+            }
+        }
+
+        private void AgentChatScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (sender is ScrollViewer scv)
+            {
+                double newOffset = scv.VerticalOffset - (e.Delta * 0.7);
+                scv.ScrollToVerticalOffset(Math.Max(0, Math.Min(scv.ScrollableHeight, newOffset)));
+                e.Handled = true;
+            }
+        }
+
+        private void StartLiquidAnimations()
+        {
+            try
+            {
+                if (_viewModel.EnableLiquidWaves)
+                {
+                    // 1. Бегущая рябь / каустическая световая волна преломления
+                    var waveAnim = new DoubleAnimation
+                    {
+                        From = -450,
+                        To = 450,
+                        Duration = TimeSpan.FromSeconds(5.2),
+                        RepeatBehavior = RepeatBehavior.Forever
+                    };
+                    WaveTranslate.BeginAnimation(TranslateTransform.XProperty, waveAnim);
+
+                    // 2. Мягкая плавучесть и дыхание капли (organic liquid buoyancy)
+                    var buoyAnim = new DoubleAnimation
+                    {
+                        From = 0.0,
+                        To = 1.6,
+                        Duration = TimeSpan.FromSeconds(3.2),
+                        AutoReverse = true,
+                        RepeatBehavior = RepeatBehavior.Forever,
+                        EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut }
+                    };
+                    LiquidBuoyancyTranslate.BeginAnimation(TranslateTransform.YProperty, buoyAnim);
+                }
+                else
+                {
+                    WaveTranslate.BeginAnimation(TranslateTransform.XProperty, null);
+                    LiquidBuoyancyTranslate.BeginAnimation(TranslateTransform.YProperty, null);
+                    WaveTranslate.X = -450;
+                    LiquidBuoyancyTranslate.Y = 0.0;
+                }
+            }
+            catch (Exception ex)
+            {
+                App.Log($"StartLiquidAnimations error: {ex.Message}");
             }
         }
 
