@@ -22,18 +22,18 @@ namespace DynamicIsland.Services
     }
 
     /// <summary>
-    /// Сервис звуковых эффектов на базе оригинальных системных аудиофайлов iOS / watchOS / macOS.
+    /// Сервис звуковых эффектов на базе оригинальных тактильных аудиофайлов Apple iOS / watchOS (UI Haptics).
     /// Использует полифонический микшер NAudio (MixingSampleProvider) с предварительно кэшированными
     /// в память 16-битными PCM-семплами:
     /// - Полная поддержка наложения звуков (одновременное воспроизведение тапов, анимаций и уведомлений)
-    /// - Плавная комфортная громкость на уровне ~35–45% без щелчков и клиппинга
+    /// - Тихая ненавязчивая громкость (0.25 для кликов и жестов, 0.40 для таймера) без резких мелодий
     /// - Мгновенный отклик 0 мс (все аудиоданные предзагружены в RAM)
     /// - Отказоустойчивый запуск без исключений при отсутствии активного аудиоустройства
     /// </summary>
     public class SoundEffectService : ISoundEffectService
     {
         public bool IsSoundEnabled { get; set; } = true;
-        public float MasterVolume { get; set; } = 0.40f;
+        public float MasterVolume { get; set; } = 1.0f;
 
         private readonly MixingSampleProvider? _mixer;
         private readonly WaveOutEvent? _waveOut;
@@ -79,20 +79,20 @@ namespace DynamicIsland.Services
             }
         }
 
-        // Раскрытие острова: оригинальный мягкий восходящий звук Siri / dictation begin (jbl_begin.caf)
-        public void PlayExpand() => PlaySound(_expandSound, 0.95f);
+        // Раскрытие острова: короткий мягкий тактильный импульс вверх (3rdParty_DirectionUp_Haptic)
+        public void PlayExpand() => PlaySound(_expandSound, 1.0f);
 
-        // Сворачивание острова: оригинальный мягкий нисходящий звук Siri / dictation cancel (jbl_cancel.caf)
-        public void PlayCollapse() => PlaySound(_collapseSound, 0.90f);
+        // Сворачивание острова: короткий мягкий тактильный импульс вниз (3rdParty_DirectionDown_Haptic)
+        public void PlayCollapse() => PlaySound(_collapseSound, 1.0f);
 
-        // Клик по табам и кнопкам: оригинальный глухой тактильный клик Taptic Engine (Tock.caf)
-        public void PlayTap() => PlaySound(_tapSound, 1.05f);
+        // Клик по табам и кнопкам: тихий глухой тактильный клик клавиатуры iPhone (Tock.caf)
+        public void PlayTap() => PlaySound(_tapSound, 1.0f);
 
-        // Завершение таймера / уведомление: хрустальный аккорд Apple Pay (payment_success.caf)
-        public void PlayChime() => PlaySound(_chimeSound, 0.95f);
+        // Завершение таймера / уведомление: мягкий хрустальный аккорд Apple Pay (payment_success.caf)
+        public void PlayChime() => PlaySound(_chimeSound, 1.0f);
 
-        // Сброс файлов в карман: фирменный звук успешной отправки / AirDrop (SentMessage.caf)
-        public void PlayDrop() => PlaySound(_dropSound, 0.95f);
+        // Сброс файлов в карман: тактильный звук отправки AirDrop (SentMessage.caf)
+        public void PlayDrop() => PlaySound(_dropSound, 1.0f);
 
         // Псевдонимы обратной совместимости
         public void PlayPop() => PlayTap();
